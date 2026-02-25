@@ -71,6 +71,17 @@ if (a>8){
 }
 }
 
+void write_analog(int a){
+    PORTC |= BIT(a);
+}
+void digital_pullup(int a, bool b){
+if(b){
+    PORTD |= BIT(a);
+}
+else{
+    PORTD &= ~BIT(a);
+}
+}
 
 /******************************************************************************
  *                           P U B L I C  V A R S
