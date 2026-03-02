@@ -32,13 +32,12 @@ else{
 }
 }
 
-void set_digital(int a, bool b){
-if(b){
-    PORTD |= BIT(a);
+void set_digitalHIGH(int a){
+    PORTD |= BIT(a);  
 }
-else{
+
+void set_digitalLOW(int a){
     PORTD &= ~BIT(a);
-}
 }
 
 bool read_digital(int a){

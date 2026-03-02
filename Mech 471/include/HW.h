@@ -17,7 +17,8 @@ void HW_init(void);
 // digtal pin input or ouput
 //pin 8 = bit 5
 void digital_i_o(int a, bool b); // edit pin a to state b 1 is output
-void set_digital(int a, bool b); // edit pin a to state b, 1 is high 
+void set_digitalHIGH(int a); // edit pin a to state b, 1 is high 
+void set_digitalLOW(int a);
 bool read_digital(int a);
 void digital_pullup(int a, bool b); //pull up on b = 1
 void set_PWM(int a);
