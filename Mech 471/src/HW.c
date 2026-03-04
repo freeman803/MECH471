@@ -21,6 +21,9 @@ ADCSRA |= BIT(0);//
 ADCSRA |= BIT(1);//
 ADCSRA |= BIT(2);// top 3 lines set adc pre scaler /128
 ADMUX &= ~BIT(5); //adc left adjust result 
+//init timers
+TCCR1A = 0;
+TCCR1B = 0;
 }
 
  void digital_i_o(int a, bool b){
@@ -80,6 +83,22 @@ if(b){
 else{
     PORTD &= ~BIT(a);
 }
+}
+
+bool init_fastPWM(long int hz, int duty, int pin){
+    if (pin > 10 || pin < 8) return false;
+    pin = pin -8;
+    DDRB |= BIT(pin);
+    // look at table 14.8
+    TCCR1B |= BIT(3) | BIT(4); // sets wgm02 = 1
+    TCCR1A |= BIT(1); // sets wgm00 = 1 and wgm01 = 1
+    TCCR1A |= BIT(7);// non inverting input
+    TCCR1B |= BIT(0) | BIT(1); // Prescaler = 64
+    uint32_t top = (16000000UL / (64UL * hz)) - 1;
+    if (top > 65535) return false;
+     ICR1 = top;
+    OCR1A = (top*duty)/100;
+    return true;
 }
 
 /******************************************************************************

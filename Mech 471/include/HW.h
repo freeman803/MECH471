@@ -21,7 +21,7 @@ void set_digitalHIGH(int a); // edit pin a to state b, 1 is high
 void set_digitalLOW(int a);
 bool read_digital(int a);
 void digital_pullup(int a, bool b); //pull up on b = 1
-void set_PWM(int a);
+bool init_fastPWM(long int hz, int duty, int pin); // a = hz b = duty cycle as a percentage whole numbers only c = pin # (9-11) returns false if frequency is too high
 
 //ANALOG PINS
 void analog_i_o(int a, bool b); // edit pin a to state b 1 is output

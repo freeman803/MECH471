@@ -1,13 +1,13 @@
 #include <Arduino.h>
 #include <HW.h>
+#include <Arduino_FreeRTOS.h>
 
-
-// put function declarations here:
-int myFunction(int, int);
 
 void setup() {
+  HW_init();
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+
 }
