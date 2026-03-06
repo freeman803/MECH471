@@ -60,17 +60,21 @@ int read_analogHL(int a){
 return PINC & BIT(a);
 }
 
-float read_analog_ADC(int a){
-
-ADCSRA |= BIT(6); // start ADC conversion
-while (ADCSRA & BIT(4));
-//must read adcl before adch
-if (a< 8){
-return (ADCL&BIT(a)); 
-}
-if (a>8){
-    return (ADCH*BIT(a));
-}
+float read_analog_ADC(ANALOG_PINS pin){
+    if (pin > 6) 
+        return 0.0; // check for invalid input
+    //reference voltage
+    ADMUX |= BIT(6);
+    ADMUX &= ~BIT(7);
+    pin &= 0x0F;
+    ADMUX &= ~(0x0F);//clear mux bits
+    ADMUX |= pin;
+    ADCSRA |= BIT(6); // start ADC conversion
+    while (ADCSRA & BIT(6));
+    //must read adcl before adch
+    uint16_t result = ADCL;
+    result |= (uint16_t)ADCH <<8;
+    return result *(5.0/1023.0);
 }
 
 void write_analog(int a){
@@ -101,6 +105,50 @@ bool init_fastPWM(long int hz, int duty, int pin){
     return true;
 }
 
+
+bool define_ISR(interrupt_mode mode, ISR_Pin pin){
+    int adj;
+    int adj1;
+    if (pin == PIN_D2){
+        adj = 0;
+        adj1 = 0;
+        DDRD &= ~BIT(2);
+    }
+    else if(pin == PIN_D3){
+        adj = 2;
+        adj1 = 1;
+        DDRD &= ~BIT(3);
+    }
+    else{
+        return false;
+    }
+    
+    switch (mode){
+        case LOW_LEVEL: 
+            EICRA &= ~BIT(0+adj);
+            EICRA &= ~BIT(1+adj);
+            break;
+        case ANY_CHANGE: 
+            EICRA |= BIT(0+adj);
+            EICRA &= ~BIT(1+adj);
+            break;
+        case FALLING_EDGE: 
+            EICRA &= ~BIT(0+adj);
+            EICRA |= BIT(1+adj);
+            break;
+        case RISING_EDGE: 
+            EICRA |= BIT(0+adj);
+            EICRA |= BIT(1+adj);
+            break;
+
+        default:
+            return false;
+    }
+    EIFR |= BIT(0+adj1);//clear interrupts
+    EIMSK |= BIT(0+adj1);
+    SREG |= BIT(7);
+    return true;
+    }
 /******************************************************************************
  *                           P U B L I C  V A R S
  ******************************************************************************/
