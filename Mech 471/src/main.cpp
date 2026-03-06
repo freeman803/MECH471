@@ -1,7 +1,19 @@
+ /******************************************************************************
+ *                              D E F I N E S
+ ******************************************************************************/
+// allow c++ to recognize c files
+#ifdef __cplusplus
+extern "C" {
+#endif
+void HW_init(void);
+#ifdef __cplusplus
+}
+#endif
+/******************************************************************************
+ *                             I N C L U D E S
+ ******************************************************************************/
 #include <Arduino.h>
-#include <HW.h>
-#include <Arduino_FreeRTOS.h>
-
+#include "HW.h"
 
 void setup() {
   HW_init();
