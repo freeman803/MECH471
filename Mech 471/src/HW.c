@@ -105,7 +105,6 @@ bool init_fastPWM(long int hz, int duty, int pin){
     return true;
 }
 
-
 bool define_ISR(interrupt_mode mode, ISR_Pin pin){
     int adj;
     int adj1;
