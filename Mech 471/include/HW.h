@@ -81,7 +81,7 @@ void set_digitalLOW(digital_pin pin);
 bool read_digital(digital_pin pin);
 void digital_pullup(digital_pin pin, pullup_status pull);
 bool init_fastPWM(long int hz, int duty, digital_pin pin); // pin # (9-11) duty cycle is a percentage returns false if frequency is too high
-
+bool edit_PWM(digital_pin pin , int duty,long int hz);
 //ANALOG PINS
 void analog_i_o(ANALOG_PINS pins, IO io); // edit pin a to state b 1 is output
 int read_analogHL(ANALOG_PINS pin); // reads analog pin as a digital input high is 0.> 6 *VCC low is <0.33*VCC
