@@ -26,38 +26,38 @@ TCCR1A = 0;
 TCCR1B = 0;
 }
 
- void digital_i_o(int a, bool b){
-if(b){
-    DDRB |= BIT(a);
+ void digital_i_o(digital_pin pin, IO io){
+if(io){
+    DDRB |= BIT(pin);
 }
 else{
-    DDRB &= ~BIT(a);
+    DDRB &= ~BIT(pin);
 }
 }
 
-void set_digitalHIGH(int a){
-    PORTD |= BIT(a);  
+void set_digitalHIGH(digital_pin pin){
+    PORTD |= BIT(pin);  
 }
 
-void set_digitalLOW(int a){
-    PORTD &= ~BIT(a);
+void set_digitalLOW(digital_pin pin){
+    PORTD &= ~BIT(pin);
 }
 
-bool read_digital(int a){
-return PIND & BIT(a);
+bool read_digital(digital_pin pin){
+return PIND & BIT(pin);
 }
 
-void analog_i_o(int a, bool b){
-if (b){
-    DDRC |= BIT(a);
+void analog_i_o(ANALOG_PINS pins, IO io){
+if (io){
+    DDRC |= BIT(pins);
 }
 else{
-    DDRC &= ~BIT(a);
+    DDRC &= ~BIT(pins);
 }
 }
 
-int read_analogHL(int a){
-return PINC & BIT(a);
+int read_analogHL(ANALOG_PINS pin){
+return PINC & BIT(pin);
 }
 
 float read_analog_ADC(ANALOG_PINS pin){
@@ -77,15 +77,15 @@ float read_analog_ADC(ANALOG_PINS pin){
     return result *(5.0/1023.0);
 }
 
-void write_analog(int a){
-    PORTC |= BIT(a);
+void write_analog(ANALOG_PINS pin){
+    PORTC |= BIT(pin);
 }
-void digital_pullup(int a, bool b){
-if(b){
-    PORTD |= BIT(a);
+void digital_pullup(digital_pin pin, pullup_status pull){
+if(pull){
+    PORTD |= BIT(pin);
 }
 else{
-    PORTD &= ~BIT(a);
+    PORTD &= ~BIT(pin);
 }
 }
 

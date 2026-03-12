@@ -39,6 +39,32 @@ typedef enum {
     A_5,
 } ANALOG_PINS;
 
+typedef enum{
+    output = 0,
+    input = 1
+} IO;
+
+typedef enum{
+    pin0 = 0,
+    pin1,
+    pin2,
+    pin3,
+    pin4,
+    pin5,
+    pin6,
+    pin7,
+    pin8,
+    pin9,
+    pin10,
+    pin11,
+    pin12,
+    pin13
+} digital_pin;
+
+typedef enum{
+    off = 0,
+    on,
+} pullup_status;
 
 
 /******************************************************************************
@@ -49,18 +75,18 @@ void HW_init(void);
 
 // digtal pin input or ouput
 //pin 8 = bit 5
-void digital_i_o(int a, bool b); // edit pin a to state b 1 is output
-void set_digitalHIGH(int a); // edit pin a to state b, 1 is high 
-void set_digitalLOW(int a);
-bool read_digital(int a);
-void digital_pullup(int a, bool b); //pull up on b = 1
-bool init_fastPWM(long int hz, int duty, int pin); // pin # (9-11) duty cycle is a percentage returns false if frequency is too high
+void digital_i_o(digital_pin pin, IO io); // edit pin a to state b 1 is output
+void set_digitalHIGH(digital_pin pin); 
+void set_digitalLOW(digital_pin pin);
+bool read_digital(digital_pin pin);
+void digital_pullup(digital_pin pin, pullup_status pull);
+bool init_fastPWM(long int hz, int duty, digital_pin pin); // pin # (9-11) duty cycle is a percentage returns false if frequency is too high
 
 //ANALOG PINS
-void analog_i_o(int a, bool b); // edit pin a to state b 1 is output
-int read_analogHL(int a); // reads analog pin as a digital input high is 0.> 6 *VCC low is <0.33*VCC
+void analog_i_o(ANALOG_PINS pins, IO io); // edit pin a to state b 1 is output
+int read_analogHL(ANALOG_PINS pin); // reads analog pin as a digital input high is 0.> 6 *VCC low is <0.33*VCC
 float read_analog_ADC(ANALOG_PINS pin); // returns a voltage
-void write_analog(int a); // write a high low to analog pin
+void write_analog(ANALOG_PINS pin); // write a high low to analog pin
 
 //ISR Functions
 bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not set ISR
