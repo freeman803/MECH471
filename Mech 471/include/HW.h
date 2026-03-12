@@ -90,3 +90,10 @@ void write_analog(ANALOG_PINS pin); // write a high low to analog pin
 
 //ISR Functions
 bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not set ISR
+// these funtions are how you define the interrupts must only be defined once vector1 is D2 vector2 is D3
+// MY_ISR(__vector_1) 
+// {
+// }
+// MY_ISR(__vector_2)  
+// {
+// }
