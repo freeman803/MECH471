@@ -66,7 +66,6 @@ typedef enum{
     on,
 } pullup_status;
 
-
 /******************************************************************************
  *                             P U B L I C  F U N C T I O N S
  ******************************************************************************/
@@ -90,6 +89,9 @@ void write_analog(ANALOG_PINS pin); // write a high low to analog pin
 
 //ISR Functions
 bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not set ISR
+//timers
+void pwm1_stop(void);
+void pwm1_start(void);
 // these funtions are how you define the interrupts must only be defined once vector1 is D2 vector2 is D3
 // MY_ISR(__vector_1) 
 // {

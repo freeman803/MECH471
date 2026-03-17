@@ -20,7 +20,7 @@ ADCSRA |= BIT(7); // ADC voltage reference is gnd and not one of the other adc p
 ADCSRA |= BIT(0);//
 ADCSRA |= BIT(1);//
 ADCSRA |= BIT(2);// top 3 lines set adc pre scaler /128
-ADMUX &= ~BIT(5); //adc left adjust result 
+ADMUX |= BIT(5); //adc left adjust result 
 //init timers
 TCCR1A = 0;
 TCCR1B = 0;
@@ -80,6 +80,7 @@ float read_analog_ADC(ANALOG_PINS pin){
 void write_analog(ANALOG_PINS pin){
     PORTC |= BIT(pin);
 }
+
 void digital_pullup(digital_pin pin, pullup_status pull){
 if(pull){
     PORTD |= BIT(pin);
@@ -124,6 +125,7 @@ bool edit_PWM(digital_pin pin, int duty, long int hz){
         return false;
     return true;
 }
+
 bool define_ISR(interrupt_mode mode, ISR_Pin pin){
     int adj;
     int adj1;
@@ -168,6 +170,19 @@ bool define_ISR(interrupt_mode mode, ISR_Pin pin){
     return true;
     }
 
-    /******************************************************************************
+void pwm1_start(void)
+{
+    // Prescaler = 64 (same as your init)
+    TCCR1B |= BIT(0) | BIT(1);
+}
+
+void pwm1_stop(void)
+{
+    // Clear clock select bits (CS12:CS10)
+    TCCR1B &= ~(BIT(0) | BIT(1) | BIT(2));
+}
+
+
+/******************************************************************************
  *                           P U B L I C  V A R S
  ******************************************************************************/
