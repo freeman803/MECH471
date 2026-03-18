@@ -99,7 +99,7 @@ bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not 
 
 //Timers
 void timer0_init(void);
-uint32_t millis(void);
+uint32_t millis_(void);
 void update_dt(struct time_differencePID *time);
 void init_dt(struct time_differencePID *time);
 // these funtions are how you define the interrupts must only be defined once vector1 is D2 vector2 is D3

@@ -1,5 +1,5 @@
 /**
- * @file HW.c
+ * @file HW.cpp
  * @brief Module source that defines HW functions
  */
 
@@ -202,7 +202,7 @@ MY_ISR(__vector_15) // TIMER0 vector15 is triggered by timer0 interupt
 {
     millis_counter++;
 }
-uint32_t millis(void)
+uint32_t millis_(void)
 {
     uint32_t m;
 

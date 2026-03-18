@@ -1,5 +1,5 @@
 /**
- * @file PID.c
+ * @file PID.cpp
  * @brief Module source that defines PID library
  */
 

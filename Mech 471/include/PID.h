@@ -24,6 +24,6 @@ typedef struct {
     float dt;
 } PID_t;
 
-void PID_init(PID_t *pid, float kp, float ki, float kd, float dt);
+void PID_init(PID_t *pid, float kp, float ki, float kd);
 float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_differencePID *time);
  
