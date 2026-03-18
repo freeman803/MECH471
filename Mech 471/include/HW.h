@@ -66,6 +66,11 @@ typedef enum{
     on,
 } pullup_status;
 
+struct time_differencePID{
+uint32_t last_time;
+uint32_t time_now;
+uint32_t dt;
+};
 /******************************************************************************
  *                             P U B L I C  F U N C T I O N S
  ******************************************************************************/
@@ -95,6 +100,8 @@ bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not 
 //Timers
 void timer0_init(void);
 uint32_t millis(void);
+void update_dt(struct time_differencePID *time);
+void init_dt(struct time_differencePID *time);
 // these funtions are how you define the interrupts must only be defined once vector1 is D2 vector2 is D3
 // MY_ISR(__vector_1) 
 // {

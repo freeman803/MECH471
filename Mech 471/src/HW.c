@@ -212,6 +212,16 @@ uint32_t millis(void)
 
     return m;
 }
+void update_dt(struct time_differencePID *time){
+    time->last_time = time->time_now;
+    time->time_now = millis();
+    time->dt = (time->time_now-time->last_time);
+}
+void init_dt(struct time_differencePID *time){//this might lead to a huge 1st dt but it should be called pretty soon after boot 
+    time->time_now = millis();
+    time->last_time = 0;
+    time->dt = time->time_now-time->last_time;
+}
 /******************************************************************************
  *                           P U B L I C  V A R S
  ******************************************************************************/
