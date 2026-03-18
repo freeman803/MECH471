@@ -81,6 +81,8 @@ bool read_digital(digital_pin pin);
 void digital_pullup(digital_pin pin, pullup_status pull);
 bool init_fastPWM(long int hz, int duty, digital_pin pin); // pin # (9-11) duty cycle is a percentage returns false if frequency is too high
 bool edit_PWM(digital_pin pin , int duty,long int hz);
+void pwm1_stop(void);
+void pwm1_start(void);
 //ANALOG PINS
 void analog_i_o(ANALOG_PINS pins, IO io); // edit pin a to state b 1 is output
 int read_analogHL(ANALOG_PINS pin); // reads analog pin as a digital input high is 0.> 6 *VCC low is <0.33*VCC
@@ -89,9 +91,10 @@ void write_analog(ANALOG_PINS pin); // write a high low to analog pin
 
 //ISR Functions
 bool define_ISR(interrupt_mode mode, ISR_Pin pin);//   returns false if did not set ISR
-//timers
-void pwm1_stop(void);
-void pwm1_start(void);
+
+//Timers
+void timer0_init(void);
+uint32_t millis(void);
 // these funtions are how you define the interrupts must only be defined once vector1 is D2 vector2 is D3
 // MY_ISR(__vector_1) 
 // {

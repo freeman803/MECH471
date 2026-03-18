@@ -182,7 +182,36 @@ void pwm1_stop(void)
     TCCR1B &= ~(BIT(0) | BIT(1) | BIT(2));
 }
 
+volatile uint32_t millis_counter = 0;
 
+void timer0_init(void)
+{
+    // CTC mode
+    TCCR0A |= BIT(1);   // WGM01 = 1
+    TCCR0A &= ~BIT(0);
+
+    // Prescaler = 64
+    TCCR0B |= BIT(0) | BIT(1);
+    TCCR0B &= ~BIT(2);
+
+    OCR0A = 249;
+
+    TIMSK0 |= BIT(1); 
+}
+MY_ISR(__vector_15) // TIMER0 vector15 is triggered by timer0 interupt
+{
+    millis_counter++;
+}
+uint32_t millis(void)
+{
+    uint32_t m;
+
+    SREG &= ~BIT(7);// disables interrupts so we dont accidentally trigger any isr while doing this this is critical 
+    m = millis_counter;
+    SREG |= BIT(7); // renables interrupts so we can use them lmao
+
+    return m;
+}
 /******************************************************************************
  *                           P U B L I C  V A R S
  ******************************************************************************/
