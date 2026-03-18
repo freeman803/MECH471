@@ -17,6 +17,7 @@ void HW_init(void);
 
 void setup() {
   HW_init();
+  timer0_init();
 
 }
 
