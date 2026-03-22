@@ -1,27 +1,38 @@
  /******************************************************************************
  *                              D E F I N E S
  ******************************************************************************/
-// allow c++ to recognize c files must include all functions in this so c++ compiler can recognize them
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-// void HW_init(void);
-// void timer0_init(void);
-// #ifdef __cplusplus
-// }
-// #endif
+
 /******************************************************************************
  *                             I N C L U D E S
  ******************************************************************************/
 #include <Arduino.h>
-#include <HW.h>
-#include <PID.h>
+#include <HW\ADC.h>
+
+float adc1 = 0;
+float adc3 = 0;
+float adc5 = 0;
 
 void setup() {
-  HW_init();
-  timer0_init();
+Serial.begin(9600);
+ADC_INIT();
+analog_i_o(A_1,input);
+analog_i_o(A_3,input);
+analog_i_o(A_5,input);
+
 }
 
 void loop() {
+adc1 = read_analog_ADC(A_1);
+adc3 = read_analog_ADC(A_3);
+adc5 = read_analog_ADC(A_5);
+Serial.print("\n adc1 ,");
+Serial.print(adc1);
+Serial.print(", adc3 ,");
+Serial.print(adc3);
+Serial.print(", adc5 ,");
+Serial.print(adc5);
+Serial.print(",");
 
+
+delay(10);
 }

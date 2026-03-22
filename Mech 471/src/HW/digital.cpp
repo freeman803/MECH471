@@ -1,31 +1,17 @@
 /**
- * @file HW.cpp
- * @brief Module source that defines HW functions
+ * @file ADC.cpp
+ * @brief Module source that defines ADC functions
  */
 
 /******************************************************************************
  *                             I N C L U D E S
  ******************************************************************************/
-#include "HW.h"
-
-/******************************************************************************
- *                         P R I V A T E  V A R S
- ******************************************************************************/
+#include <HW\digital.h>
 
 /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-void HW_init(void){
-ADCSRA |= BIT(7); // ADC voltage reference is gnd and not one of the other adc pins
-ADCSRA |= BIT(0);//
-ADCSRA |= BIT(1);//
-ADCSRA |= BIT(2);// top 3 lines set adc pre scaler /128
-ADMUX |= BIT(5); //adc left adjust result 
-//init timers
-TCCR1A = 0;
-TCCR1B = 0;
-}
-
+ 
  void digital_i_o(digital_pin pin, IO io){
 if(io){
     DDRB |= BIT(pin);
@@ -45,40 +31,6 @@ void set_digitalLOW(digital_pin pin){
 
 bool read_digital(digital_pin pin){
 return PIND & BIT(pin);
-}
-
-void analog_i_o(ANALOG_PINS pins, IO io){
-if (io){
-    DDRC |= BIT(pins);
-}
-else{
-    DDRC &= ~BIT(pins);
-}
-}
-
-int read_analogHL(ANALOG_PINS pin){
-return PINC & BIT(pin);
-}
-
-float read_analog_ADC(ANALOG_PINS pin){
-    if (pin > 6) 
-        return 0.0; // check for invalid input
-    //reference voltage
-    ADMUX |= BIT(6);
-    ADMUX &= ~BIT(7);
-    pin &= 0x0F;
-    ADMUX &= ~(0x0F);//clear mux bits
-    ADMUX |= pin;
-    ADCSRA |= BIT(6); // start ADC conversion
-    while (ADCSRA & BIT(6));
-    //must read adcl before adch
-    uint16_t result = ADCL;
-    result |= (uint16_t)ADCH <<8;
-    return result *(5.0/1023.0);
-}
-
-void write_analog(ANALOG_PINS pin){
-    PORTC |= BIT(pin);
 }
 
 void digital_pullup(digital_pin pin, pullup_status pull){
@@ -181,47 +133,3 @@ void pwm1_stop(void)
     // Clear clock select bits (CS12:CS10)
     TCCR1B &= ~(BIT(0) | BIT(1) | BIT(2));
 }
-
-volatile uint32_t millis_counter = 0;
-
-void timer0_init(void)
-{
-    // CTC mode
-    TCCR0A |= BIT(1);   // WGM01 = 1
-    TCCR0A &= ~BIT(0);
-
-    // Prescaler = 64
-    TCCR0B |= BIT(0) | BIT(1);
-    TCCR0B &= ~BIT(2);
-
-    OCR0A = 249;
-
-    TIMSK0 |= BIT(1); 
-}
-MY_ISR(__vector_15) // TIMER0 vector15 is triggered by timer0 interupt
-{
-    millis_counter++;
-}
-uint32_t millis_(void)
-{
-    uint32_t m;
-
-    SREG &= ~BIT(7);// disables interrupts so we dont accidentally trigger any isr while doing this this is critical 
-    m = millis_counter;
-    SREG |= BIT(7); // renables interrupts so we can use them lmao
-
-    return m;
-}
-void update_dt(struct time_differencePID *time){
-    time->last_time = time->time_now;
-    time->time_now = millis();
-    time->dt = (time->time_now-time->last_time);
-}
-void init_dt(struct time_differencePID *time){//this might lead to a huge 1st dt but it should be called pretty soon after boot 
-    time->time_now = millis();
-    time->last_time = 0;
-    time->dt = time->time_now-time->last_time;
-}
-/******************************************************************************
- *                           P U B L I C  V A R S
- ******************************************************************************/
