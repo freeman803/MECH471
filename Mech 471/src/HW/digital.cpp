@@ -14,10 +14,11 @@
  
  void digital_i_o(digital_pin pin, IO io){
 if(io){
-    DDRB |= BIT(pin);
+    DDRD &= ~BIT(pin); //input
+    PORTB &= ~BIT(pin);  // no pull-up
 }
 else{
-    DDRB &= ~BIT(pin);
+    DDRD |= BIT(pin); //output
 }
 }
 
