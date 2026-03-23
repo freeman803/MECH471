@@ -44,25 +44,39 @@ else{
 }
 
 bool init_fastPWM(long int hz, int duty, digital_pin pin){
-    if (pin > pin10 || pin < pin9) return false;
-    if (pin == pin9) DDRB |= BIT(1);
-    if (pin == pin10) DDRB |= BIT(2);
+    // Stop timer completely first
+    TCCR1B = 0;
+    TCCR1A = 0;
+    TCNT1  = 0;  // Reset counter
+    ICR1   = 0;
+    OCR1A  = 0;
+    OCR1B  = 0;
+    if (pin != pin10 ) return false;
+
+    if (pin == pin9) DDRB |= BIT(DDB1);
+    if (pin == pin10) DDRB |= BIT(DDB2);
+
     // look at table 14.8
-    TCCR1B |= BIT(3) | BIT(4); // sets wgm02 = 1
-    TCCR1A |= BIT(1); // sets wgm00 = 1 and wgm01 = 1
-    // non-inverting
-    if (pin == pin9)  TCCR1A |= BIT(7); // COM1A1
-    if (pin == pin10) TCCR1A |= BIT(5); // COM1B1
-    TCCR1B |= BIT(0) | BIT(1); // Prescaler = 64
-    uint32_t top = (16000000UL / (64UL * hz)) - 1;
+    TCCR1B |=  BIT(WGM13) | BIT(WGM12);
+    TCCR1A |=  BIT(WGM11);
+    TCCR1A &= ~BIT(WGM10);
+    //normal operation
+    TCCR1A &= ~(BIT(COM1A1) | BIT(COM1A0) | BIT(COM1B1) | BIT(COM1B0));
+    if (pin == pin9)  TCCR1A |= BIT(COM1A1);
+    if (pin == pin10) TCCR1A |= BIT(COM1B1);
+    
+     uint32_t top = (16000000UL / (64UL * hz)) - 1;
     if (top > 65535) return false;
-     ICR1 = top;
+     ICR1 = (uint16_t)top;
     if (pin == pin9)
         OCR1A = (top * duty) / 100;
     else if (pin == pin10)
         OCR1B = (top * duty) / 100;
     else 
         return false;
+    // Prescaler = 64
+    TCCR1B &= ~BIT(CS12);
+    TCCR1B |= BIT(CS10) | BIT(CS11); 
     return true;
 }
 

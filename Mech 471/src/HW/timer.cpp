@@ -57,3 +57,7 @@ void init_dt(struct time_differencePID *time){//this might lead to a huge 1st dt
     time->last_time = 0;
     time->dt = time->time_now-time->last_time;
 }
+void delay_ms(uint32_t ms) {
+    uint32_t start = millis_();
+    while ((millis_() - start) < ms);
+}
