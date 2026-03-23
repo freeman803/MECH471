@@ -7,19 +7,17 @@
  ******************************************************************************/
 #include <Arduino.h>
 #include <HW\digital.h>
+#include<HW\timer.h>
 
 
 void setup() {
 Serial.begin(9600);
-digital_i_o(pin7,output);
-digital_i_o(pin8,output);
+timer0_init();
 }
 
 void loop() {
-set_digitalHIGH(pin7);
-set_digitalHIGH(pin8);
-delay(10);
-set_digitalLOW(pin7);
-set_digitalLOW(pin8);
-delay(10);
+Serial.print((int)millis_());
+delay_ms(1000);
+Serial.print((int)millis_());
+delay_ms(1000);
 }
