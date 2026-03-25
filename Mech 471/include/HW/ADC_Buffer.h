@@ -8,17 +8,28 @@
 
  #include <Arduino.h>
  #include <avr/io.h> 
- #include <HW/define.h>
+ #include<HW/define.h>
+ #include <HW\ADC.h>
  /******************************************************************************
  *                              D E F I N E S
  ******************************************************************************/
+#define BufferLength ((uint8_t)50)
+
+
+#ifndef FIFO_CONFIG_H
+#define FIFO_CONFIG_H
+
+// Uncomment the buffers you actually need
+//#define USE_BUFFER1
+//#define USE_BUFFER2
+//#define USE_BUFFER3
+//#define USE_BUFFER4
+//#define USE_BUFFER5
+//#define USE_BUFFER6
+
+#endif
 
  /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-
-void ADC_INIT(void);
-void analog_i_o(ANALOG_PINS pins, IO io); // edit pin a to state b 1 is output
-int read_analogHL(ANALOG_PINS pin); // reads analog pin as a digital input high is 0.> 6 *VCC low is <0.33*VCC
-float read_analog_ADC(ANALOG_PINS pin); // returns a voltage
-void write_analog(ANALOG_PINS pin); // write a high low to analog pin
+float buffer_avg(float (*arr)[BufferLength]);

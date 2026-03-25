@@ -1,5 +1,8 @@
- #define BIT(a) (1UL << (a))
-  typedef enum{
+#pragma once
+
+#define BIT(a) (1UL << (a))
+
+typedef enum{
     pin0 = 0,
     pin1,
     pin2,
@@ -15,11 +18,13 @@
     pin12,
     pin13
 } digital_pin;
+
 typedef enum{
     output = 0,
     input = 1
 } IO;
- typedef enum {
+
+typedef enum {
     A_0 = 0,
     A_1,
     A_2,
