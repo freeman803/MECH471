@@ -41,10 +41,6 @@ float read_analog_ADC(ANALOG_PINS pin){
         return 0.0; // check for invalid input
     //to select which pin
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)pin);
-    // dummy conversion
-    ADCSRA |= BIT(ADSC);
-    while (ADCSRA & BIT(ADSC));
-    // real
     ADCSRA |= BIT(ADSC); // start ADC conversion
     while (ADCSRA & BIT(ADSC));
     //must read adcl before adch
