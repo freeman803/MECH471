@@ -20,27 +20,27 @@
 // buffer5 -> ADC5
 
 #ifdef USE_BUFFER1
-LIB_BUFFER_FIFO_CREATE(buffer1, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer1, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER2
-LIB_BUFFER_FIFO_CREATE(buffer2, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer2, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER3
-LIB_BUFFER_FIFO_CREATE(buffer3, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer3, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER4
-LIB_BUFFER_FIFO_CREATE(buffer4, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer4, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER5
-LIB_BUFFER_FIFO_CREATE(buffer5, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer5, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER6
-LIB_BUFFER_FIFO_CREATE(buffer6, float, BufferLength);
+LIB_BUFFER_FIFO_CREATE(buffer6, uint16_t, BufferLength);
 #endif
 
 ISR(ADC_vect){
