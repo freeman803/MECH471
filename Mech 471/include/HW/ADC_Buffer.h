@@ -33,3 +33,5 @@
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
 float buffer_avg(float (*arr)[BufferLength]);
+uint16_t read_analog_buffer(ANALOG_PINS pin);
+void init_buffer(void);
