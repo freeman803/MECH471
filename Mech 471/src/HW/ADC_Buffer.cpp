@@ -40,6 +40,27 @@ LIB_BUFFER_FIFO_CREATE(USE_Buffer4, uint16_t, BufferLength);
 LIB_BUFFER_FIFO_CREATE(USE_Buffer5, uint16_t, BufferLength);
 #endif
 
+static const uint8_t enabled_pins[] = {
+#ifdef USE_BUFFER0
+    A_0,
+#endif
+#ifdef USE_BUFFER1
+    A_1,
+#endif
+#ifdef USE_BUFFER2
+    A_2,
+#endif
+#ifdef USE_BUFFER3
+    A_3,
+#endif
+#ifdef USE_BUFFER4
+    A_4,
+#endif
+#ifdef USE_BUFFER5
+    A_5,
+#endif
+};
+
 void init_buffer(void){
     ADC_INIT();
 
@@ -234,12 +255,50 @@ uint16_t buffer_avg(uint16_t *arr){
     }
     return sum/BufferLength;
 }
+uint16_t buffer0_avg(void){
+#ifdef USE_BUFFER0
+    return buffer_avg(USE_Buffer0.buffer);
+#else
+    return 10000;
+#endif
+}
+
+uint16_t buffer1_avg(void){
+#ifdef USE_BUFFER1
+    return buffer_avg(USE_Buffer1.buffer);
+#else
+    return 10000;
+#endif
+}
 
 uint16_t buffer2_avg(void){
 #ifdef USE_BUFFER2
     return buffer_avg(USE_Buffer2.buffer);
 #else
-    return 0;
+    return 10000;
 #endif
 }
 
+uint16_t buffer3_avg(void){
+#ifdef USE_BUFFER3
+    return buffer_avg(USE_Buffer3.buffer);
+#else
+    return 10000;
+#endif
+}
+
+uint16_t buffer4_avg(void){
+#ifdef USE_BUFFER4
+    return buffer_avg(USE_Buffer4.buffer);
+#else
+    return 10000;
+#endif
+}
+
+uint16_t buffer5_avg(void){
+#ifdef USE_BUFFER5
+    return buffer_avg(USE_Buffer5.buffer);
+#else
+    return 10000;
+#endif
+}
