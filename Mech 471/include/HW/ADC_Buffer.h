@@ -17,7 +17,7 @@
 /******************************************************************************
  *                              D E F I N E S
  ******************************************************************************/
-#define BufferLength ((uint8_t)50)
+#define BufferLength ((uint8_t)100)
 
 #ifndef FIFO_CONFIG_H
 #define FIFO_CONFIG_H
@@ -41,5 +41,4 @@ uint16_t buffer2_avg(void);
 uint16_t buffer3_avg(void);
 uint16_t buffer4_avg(void);
 uint16_t buffer5_avg(void);
-uint16_t read_analog_buffer(ANALOG_PINS pin);
 void init_buffer(void);
