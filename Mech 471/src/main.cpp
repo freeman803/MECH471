@@ -8,16 +8,16 @@
 #include <Arduino.h>
 #include <HW\digital.h>
 #include<HW\timer.h>
+#include <HW\ADC_Buffer.h>
 
 
 void setup() {
 Serial.begin(9600);
-timer0_init();
+init_buffer();
 }
 
 void loop() {
-Serial.print((int)millis_());
-delay_ms(1000);
-Serial.print((int)millis_());
-delay_ms(1000);
+uint16_t value = buffer_avg(USE_Buffer1.buffer);
+Serial.print(value);
+
 }

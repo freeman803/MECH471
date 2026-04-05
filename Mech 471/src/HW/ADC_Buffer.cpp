@@ -11,6 +11,7 @@
 #include <HW\ADC.h>
 #include <HW\ADC_Buffer.h>
 #include <avr/interrupt.h>
+#include "lib_buffer.h"
 /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
@@ -41,7 +42,7 @@ void init_buffer(void){
     ADCSRA |= BIT(ADSC);
 }
 
-uint16_t read_analog_buffer(void){
+uint16_t read_analog_buffer(ANALOG_PINS pin){
     uint16_t result = ADC;
     uint8_t next_pin = ADMUX & 0x0F; // this gives current pin
 
@@ -171,67 +172,67 @@ uint16_t read_analog_buffer(void){
 }
 
 #ifdef USE_BUFFER1
-LIB_BUFFER_FIFO_CREATE(buffer1, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer1, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER2
-LIB_BUFFER_FIFO_CREATE(buffer2, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer2, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER3
-LIB_BUFFER_FIFO_CREATE(buffer3, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer3, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER4
-LIB_BUFFER_FIFO_CREATE(buffer4, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer4, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER5
-LIB_BUFFER_FIFO_CREATE(buffer5, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer5, uint16_t, BufferLength);
 #endif
 
 #ifdef USE_BUFFER6
-LIB_BUFFER_FIFO_CREATE(buffer6, uint16_t, BufferLength);
+LIB_BUFFER_FIFO_CREATE(USE_Buffer6, uint16_t, BufferLength);
 #endif
 
 ISR(ADC_vect){
 uint16_t val;
 #ifdef USE_BUFFER1
     val = read_analog_buffer(A_0);
-    LIB_BUFFER_FIFO_INSERT(&buffer1, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer1, val);
 #endif
 
 #ifdef USE_BUFFER2
     val = read_analog_buffer(A_1);
-    LIB_BUFFER_FIFO_INSERT(&buffer2, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer2, val);
 #endif
 
 #ifdef USE_BUFFER3
     val = read_analog_ADC(A_2);
-    LIB_BUFFER_FIFO_INSERT(&buffer3, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer3, val);
 #endif
 
 #ifdef USE_BUFFER4
     val = read_analog_buffer(A_3);
-    LIB_BUFFER_FIFO_INSERT(&buffer4, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer4, val);
 #endif
 
 #ifdef USE_BUFFER5
     val = read_analog_buffer(A_4);
-    LIB_BUFFER_FIFO_INSERT(&buffer5, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer5, val);
 #endif
 
 #ifdef USE_BUFFER6
     val = read_analog_buffer(A_5);
-    LIB_BUFFER_FIFO_INSERT(&buffer6, val);
+    LIB_BUFFER_FIFO_INSERT(&USE_Buffer6, val);
 #endif
 
 }
 
-float buffer_avg(float (*arr)[BufferLength]){
-    float sum = 0.0f;
+uint16_t buffer_avg(uint16_t *arr){
+    uint16_t sum = 0.0;
     for (int i = 0; i < BufferLength; i++) {
-        sum += (*arr)[i];
+        sum += arr[i];
     }
     return sum/BufferLength;
 }

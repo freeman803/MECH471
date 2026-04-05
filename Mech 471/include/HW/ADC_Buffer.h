@@ -2,6 +2,10 @@
  * @file HW.h
  * @brief This will be the file defines our register level code
  */
+#pragma once
+
+#include <stdint.h>
+#include <stddef.h>
 /******************************************************************************
  *                             I N C L U D E S
  ******************************************************************************/
@@ -15,12 +19,11 @@
  ******************************************************************************/
 #define BufferLength ((uint8_t)50)
 
-
 #ifndef FIFO_CONFIG_H
 #define FIFO_CONFIG_H
 
 // Uncomment the buffers you actually need
-//#define USE_BUFFER1
+#define USE_BUFFER1
 //#define USE_BUFFER2
 //#define USE_BUFFER3
 //#define USE_BUFFER4
@@ -32,6 +35,6 @@
  /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-float buffer_avg(float (*arr)[BufferLength]);
+uint16_t buffer_avg(uint16_t *arr);
 uint16_t read_analog_buffer(ANALOG_PINS pin);
 void init_buffer(void);
