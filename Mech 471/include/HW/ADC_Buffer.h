@@ -34,12 +34,7 @@
  /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-uint16_t buffer_avg(uint16_t *arr);
-uint16_t buffer1_avg(void);
+uint16_t buffer_avg(uint16_t *arr); //internal call
 uint16_t buffer2_avg(void);
-uint16_t buffer3_avg(void);
-uint16_t buffer4_avg(void);
-uint16_t buffer5_avg(void);
-uint16_t buffer6_avg(void);
 uint16_t read_analog_buffer(ANALOG_PINS pin);
 void init_buffer(void);
