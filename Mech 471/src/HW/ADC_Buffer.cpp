@@ -20,6 +20,31 @@
 // buffer3 -> ADC3
 // buffer4 -> ADC4
 // buffer5 -> ADC5
+
+#ifdef USE_BUFFER1
+LIB_BUFFER_FIFO_CREATE(USE_Buffer1, uint16_t, BufferLength);
+#endif
+
+#ifdef USE_BUFFER2
+LIB_BUFFER_FIFO_CREATE(USE_Buffer2, uint16_t, BufferLength);
+#endif
+
+#ifdef USE_BUFFER3
+LIB_BUFFER_FIFO_CREATE(USE_Buffer3, uint16_t, BufferLength);
+#endif
+
+#ifdef USE_BUFFER4
+LIB_BUFFER_FIFO_CREATE(USE_Buffer4, uint16_t, BufferLength);
+#endif
+
+#ifdef USE_BUFFER5
+LIB_BUFFER_FIFO_CREATE(USE_Buffer5, uint16_t, BufferLength);
+#endif
+
+#ifdef USE_BUFFER6
+LIB_BUFFER_FIFO_CREATE(USE_Buffer6, uint16_t, BufferLength);
+#endif
+
 void init_buffer(void){
     ADC_INIT();
 
@@ -171,29 +196,7 @@ uint16_t read_analog_buffer(ANALOG_PINS pin){
     return result;
 }
 
-#ifdef USE_BUFFER1
-LIB_BUFFER_FIFO_CREATE(USE_Buffer1, uint16_t, BufferLength);
-#endif
 
-#ifdef USE_BUFFER2
-LIB_BUFFER_FIFO_CREATE(USE_Buffer2, uint16_t, BufferLength);
-#endif
-
-#ifdef USE_BUFFER3
-LIB_BUFFER_FIFO_CREATE(USE_Buffer3, uint16_t, BufferLength);
-#endif
-
-#ifdef USE_BUFFER4
-LIB_BUFFER_FIFO_CREATE(USE_Buffer4, uint16_t, BufferLength);
-#endif
-
-#ifdef USE_BUFFER5
-LIB_BUFFER_FIFO_CREATE(USE_Buffer5, uint16_t, BufferLength);
-#endif
-
-#ifdef USE_BUFFER6
-LIB_BUFFER_FIFO_CREATE(USE_Buffer6, uint16_t, BufferLength);
-#endif
 
 ISR(ADC_vect){
 uint16_t val;
@@ -235,5 +238,53 @@ uint16_t buffer_avg(uint16_t *arr){
         sum += arr[i];
     }
     return sum/BufferLength;
+}
+
+uint16_t buffer2_avg(void){
+#ifdef USE_BUFFER2
+    return buffer_avg(USE_Buffer2.buffer);
+#else
+    return 0;
+#endif
+}
+
+uint16_t buffer1_avg(void){
+#ifdef USE_BUFFER1
+    return buffer_avg(USE_Buffer1.buffer);
+#else
+    return 0;
+#endif
+}
+
+uint16_t buffer3_avg(void){
+#ifdef USE_BUFFER3
+    return buffer_avg(USE_Buffer3.buffer);
+#else
+    return 0;
+#endif
+}
+
+uint16_t buffer4_avg(void){
+#ifdef USE_BUFFER4
+    return buffer_avg(USE_Buffer4.buffer);
+#else
+    return 0;
+#endif
+}
+
+uint16_t buffer5_avg(void){
+#ifdef USE_BUFFER5
+    return buffer_avg(USE_Buffer5.buffer);
+#else
+    return 0;
+#endif
+}
+
+uint16_t buffer6_avg(void){
+#ifdef USE_BUFFER6
+    return buffer_avg(USE_Buffer6.buffer);
+#else
+    return 0;
+#endif
 }
 
