@@ -37,17 +37,22 @@ void PID_init(PID_t *pid, float kp, float ki, float kd)
 float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_differencePID *time){
     float error = setpoint-measurement;
 
-    pid->proportional = pid->kp*error;
-
     update_dt(time);
     float dt = time->dt / 1000.0f;
 
+    pid->proportional = pid->kp*error;
+
     pid->integrated_error += error*dt;
     pid->integral = pid->integrated_error*pid->ki;
+    if (pid->integral > integral_max)
+        pid->integral = pid->integral_max;
+    else if (pid->integral < pid->integral_min)
+        pid->integral = pid->integral_min;
 
-    pid->derivative = ((error-pid->prev_error)/dt)*pid->kd;
+    pid->derivative = ((measurement-(pid->prev_measurement))/dt)*pid->kd;
     pid->prev_error = error;
+    pid->derivative = pid->alpha * pid->derivative + (1 - pid->alpha) * pid->prev_derivative;
+    pid->prev_derivative = pid->derivative;
     
     return (pid->proportional+pid->integral+pid->derivative);
 }
-

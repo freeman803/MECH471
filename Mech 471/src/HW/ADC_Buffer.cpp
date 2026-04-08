@@ -68,19 +68,28 @@ static uint8_t current_index = 0;
 
 void init_buffer(void){
     ADC_INIT();
-
+// gets us the 1st adc enabled
 #ifdef USE_BUFFER0
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_0);
+    current_index = 0;
 #elif defined(USE_BUFFER1)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_1);
+    current_index = 1;
 #elif defined(USE_BUFFER2)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_2);
+    current_index = 2;
 #elif defined(USE_BUFFER3)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_3);
+    current_index = 3;
 #elif defined(USE_BUFFER4)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_4);
+    current_index = 4;
 #elif defined(USE_BUFFER5)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_5);
+    current_index = 5;
+#else
+    ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_0);
+    current_index = 0;
 #endif
 
     ADCSRA |= BIT(ADIE);
@@ -123,7 +132,9 @@ switch (enabled_pins[current_index]){
     break;
 #endif
 }
-current_index = (current_index+1)%NUM_PINS;
+current_index = (current_index+1);
+if current_index > NUM_PINS;
+    current_index = 0;
 uint8_t next_pin = enabled_pins[current_index];  
 ADMUX = ((ADMUX & 0xF0) | next_pin);
 ADCSRA |= BIT(ADSC); // start ADC conversion on the next enabled pin

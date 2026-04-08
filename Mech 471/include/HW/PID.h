@@ -15,13 +15,18 @@ typedef struct {
     float ki;
     float kd;
     float proportional;
+    float prev_measurement;
     float integral;
     float integrated_error;
     float prev_error;
+    float prev_derivative;
     float derivative;
     float output_min;
     float output_max;
     float dt;
+    float integral_max = 25;
+    float integral_min = 5;
+    float alpha 0.1; //tuning parameter update step 
 } PID_t;
 
 void PID_init(PID_t *pid, float kp, float ki, float kd);
