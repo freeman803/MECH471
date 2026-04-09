@@ -133,7 +133,7 @@ switch (enabled_pins[current_index]){
 #endif
 }
 current_index = (current_index+1);
-if current_index > NUM_PINS;
+if (current_index > NUM_PINS);
     current_index = 0;
 uint8_t next_pin = enabled_pins[current_index];  
 ADMUX = ((ADMUX & 0xF0) | next_pin);

@@ -36,7 +36,6 @@ void PID_init(PID_t *pid, float kp, float ki, float kd)
 
 float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_differencePID *time){
     float error = setpoint-measurement;
-
     update_dt(time);
     float dt = time->dt / 1000.0f;
 
@@ -44,7 +43,7 @@ float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_diff
 
     pid->integrated_error += error*dt;
     pid->integral = pid->integrated_error*pid->ki;
-    if (pid->integral > integral_max)
+    if (pid->integral > pid->integral_max)
         pid->integral = pid->integral_max;
     else if (pid->integral < pid->integral_min)
         pid->integral = pid->integral_min;

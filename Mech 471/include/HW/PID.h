@@ -26,7 +26,7 @@ typedef struct {
     float dt;
     float integral_max = 25;
     float integral_min = 5;
-    float alpha 0.1; //tuning parameter update step 
+    float alpha = 0.1; //tuning parameter update step 
 } PID_t;
 
 void PID_init(PID_t *pid, float kp, float ki, float kd);
