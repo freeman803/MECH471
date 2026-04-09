@@ -22,27 +22,42 @@ PID_t rpm_pid;  // declare your instance
 time_differencePID wheelrpm_time; 
 
 //steering input from profs code 
-int st_input = 1750;
-long int freq = 50; // 50hz
-int period = (int)(1/freq);
-int duty_cycle = (int)(st_input/1000)/period;
-int max_motorV = 12;
+float st_input = 1750;
+float freq = 50; // 50hz
+float period = (1.0f/freq);
+int duty_cycle = (int)((st_input/1000.0f)/period);
+float max_motorV = 12.0f;
+uint32_t k = 0;
 
 void setup() {
 Serial.begin(9600);
 // inits
-init_buffer();
+init_buffer(); // here we call adc init so dont need to call it in setup;
 timer0_init();
-ADC_INIT();
 PID_init(&rpm_pid, kp, ki,kd);
+init_dt(&wheelrpm_time);
+
 }
 void loop() {
+k++;
 //float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_differencePID *time)
-uint16_t whl_speed_fr = buffer0_avg();
-uint16_t whl_speed_rr = buffer1_avg();
-float slip_ratio = whl_speed_fr/(whl_speed_fr+whl_speed_rr);
+float whl_speed_rear = buffer1_avg()*1.0f/1023.0f*5.0f;
+float whl_speed_fr = buffer3_avg()*1.0f/1023.0f*5.0f;
+float whl_speed_fl = buffer5_avg()*1.0f/1023.0f*5.0f;
+float average_front = (whl_speed_fl+whl_speed_fr)/2.0f;
+float slip_ratio = 0;
+if (average_front>0) slip_ratio = (average_front-whl_speed_rear)/(average_front);
 float output_motorV = PID_compute(&rpm_pid,target_slip_ratio,slip_ratio,&wheelrpm_time);
-init_fastPWM(freq, duty_cycle, pin9);//steering PWM straight line
-init_fastPWM(freq, (int)(output_motorV/max_motorV), pin10); // motor output
-delay_ms(100);
+float duty = output_motorV / (float)max_motorV;
+duty = constrain(duty, 0.0f, 100.0f);
+init_fastPWM(freq, (int)duty, pin10); // motor output
+if (k%1000 == 1){
+    Serial.print("output_motorV: "); Serial.println(output_motorV);
+    Serial.print("average_front: "); Serial.println(average_front);
+    Serial.print("whl_speed_rear: "); Serial.println(whl_speed_rear);
+    Serial.print("slip_ratio: "); Serial.println(slip_ratio);
+    Serial.println();
+}
+
+delay_ms(1);
 }

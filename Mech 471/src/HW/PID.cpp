@@ -38,18 +38,20 @@ float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_diff
     float error = setpoint-measurement;
     update_dt(time);
     float dt = time->dt / 1000.0f;
+    if (dt <= 0.0f) dt = 1e-6f;
 
     pid->proportional = pid->kp*error;
 
     pid->integrated_error += error*dt;
     pid->integral = pid->integrated_error*pid->ki;
-    if (pid->integral > pid->integral_max)
-        pid->integral = pid->integral_max;
-    else if (pid->integral < pid->integral_min)
-        pid->integral = pid->integral_min;
+    if (pid->integrated_error > pid->integral_max)
+        pid->integrated_error = pid->integral_max;
+    else if (pid->integrated_error < pid->integral_min)
+        pid->integrated_error = pid->integral_min;
 
     pid->derivative = ((measurement-(pid->prev_measurement))/dt)*pid->kd;
     pid->prev_error = error;
+    pid->prev_measurement = measurement;
     pid->derivative = pid->alpha * pid->derivative + (1 - pid->alpha) * pid->prev_derivative;
     pid->prev_derivative = pid->derivative;
     

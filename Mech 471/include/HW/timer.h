@@ -16,7 +16,7 @@
 struct time_differencePID{
 uint32_t last_time=0;
 uint32_t time_now=0;
-uint32_t dt=0;
+uint32_t dt=1;
 };
 
   /******************************************************************************

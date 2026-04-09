@@ -93,9 +93,9 @@ bool init_fastPWM(long int hz, int duty, digital_pin pin){
     if (top > 65535) return false;
      ICR1 = (uint16_t)top;
     if (pin == pin9)
-        OCR1A = (top * duty) / 100;
-    else if (pin == pin10)
-        OCR1B = (top * duty) / 100;
+    OCR1A = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
+else if (pin == pin10)
+    OCR1B = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
     else 
         return false;
     // Prescaler = 64
