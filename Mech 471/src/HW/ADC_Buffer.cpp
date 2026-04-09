@@ -121,19 +121,19 @@ switch (enabled_pins[current_index]){
         LIB_BUFFER_FIFO_INSERT(&USE_Buffer3,val);
         break;
 #endif
-#ifdef USE_Buffer4
+#ifdef USE_BUFFER4
     case A_4:
         LIB_BUFFER_FIFO_INSERT(&USE_Buffer4,val);
         break;
 #endif
-#ifdef USE_Buffer5
+#ifdef USE_BUFFER5
     case A_5:
-    LIB_BUFFER_FIFO_INSERT(&USE_Buffer5,val);
-    break;
+        LIB_BUFFER_FIFO_INSERT(&USE_Buffer5,val);
+        break;
 #endif
 }
-current_index = (current_index+1);
-if (current_index > NUM_PINS);
+current_index++;
+if (current_index >= NUM_PINS)
     current_index = 0;
 uint8_t next_pin = enabled_pins[current_index];  
 ADMUX = ((ADMUX & 0xF0) | next_pin);
@@ -141,7 +141,7 @@ ADCSRA |= BIT(ADSC); // start ADC conversion on the next enabled pin
 }
 
 uint16_t buffer_avg(uint16_t *arr){
-    uint16_t sum = 0.0;
+    uint32_t sum = 0.0;
     for (int i = 0; i < BufferLength; i++) {
         sum += arr[i];
     }

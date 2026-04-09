@@ -18,31 +18,34 @@ static volatile uint32_t millis_counter = 0;
  ******************************************************************************/
 void timer0_init(void)
 {
-    //init timers
-    TCCR1A = 0;
-    TCCR1B = 0;
+    // Reset Timer2 registers
+    TCCR2A = 0;
+    TCCR2B = 0;
+
     // CTC mode
-    TCCR0A |= BIT(1);   // WGM01 = 1
-    TCCR0A &= ~BIT(0);
+    TCCR2A |= BIT(1);   // WGM21 = 1
+    TCCR2A &= ~BIT(0);  // WGM20 = 0
 
     // Prescaler = 64
-    TCCR0B |= BIT(0) | BIT(1);
-    TCCR0B &= ~BIT(2);
+    TCCR2B |= BIT(2);         // CS22 = 1
+    TCCR2B &= ~(BIT(0) | BIT(1)); // CS21=0, CS20=0
 
-    OCR0A = 249;
+    OCR2A = 249;
 
-    TIMSK0 |= BIT(1); 
+    TIMSK2 |= BIT(1);   // OCIE2A = 1
 }
-ISR(TIMER0_COMPA_vect)
+ISR(TIMER2_COMPA_vect)
+
 {
     millis_counter++;
 }
 uint32_t millis_(void)
 {
     uint32_t m;
-    SREG &= ~BIT(7);// disables interrupts so we dont accidentally trigger any isr while doing this this is critical 
+    uint8_t sreg = SREG; 
+    cli();
     m = millis_counter;
-    SREG |= BIT(7); // renables interrupts so we can use them lmao
+    SREG = sreg;
     return m;
 }
 void update_dt(struct time_differencePID *time){
@@ -57,5 +60,5 @@ void init_dt(struct time_differencePID *time){//this might lead to a huge 1st dt
 }
 void delay_ms(uint32_t ms) {
     uint32_t start = millis_();
-    while (abs(millis_() - start) < ms);
+    while ((millis_() - start) < ms);
 }

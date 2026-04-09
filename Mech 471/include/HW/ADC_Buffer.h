@@ -23,12 +23,12 @@
 #define FIFO_CONFIG_H
 
 // Uncomment the buffers you actually need
-#define USE_BUFFER0
+// #define USE_BUFFER0
 #define USE_BUFFER1
 //#define USE_BUFFER2
-//#define USE_BUFFER3
+#define USE_BUFFER3
 //#define USE_BUFFER4
-//#define USE_BUFFER5
+#define USE_BUFFER5
 #endif
 
  /******************************************************************************
