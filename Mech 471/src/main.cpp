@@ -1,63 +1,231 @@
- /******************************************************************************
- *                              D E F I N E S
- ******************************************************************************/
-
 /******************************************************************************
  *                             I N C L U D E S
  ******************************************************************************/
 #include <Arduino.h>
 #include <HW\digital.h>
-#include<HW\timer.h>
+#include <HW\timer.h>
 #include <HW\ADC_Buffer.h>
-#include <HW\ADC.h>
 #include <HW\define.h>
 #include <HW\PID.h>
+#include <math.h>
 
-float kp = 0.5;
-float ki = 0.2;
-float kd = 0.1;
-float target_slip_ratio = 0.1;
+/******************************************************************************
+ *                              C O N S T A N T S
+ ******************************************************************************/
+static const float ADC_TO_V   = 5.0f / 1023.0f;  // pre-computed: multiply not divide
+static const float V_BAT      = 12.0f;            // battery voltage (V)
+static const float PW_NEUTRAL = 1500.0f;          // servo neutral (µs)
+static const float PW_RANGE   = 500.0f;           // range each side of neutral (µs)
+static const float PW_MIN     = 1000.0f;          // full reverse (µs)
+static const float PW_MAX     = 2000.0f;          // full forward (µs)
 
-PID_t rpm_pid;  // declare your instance
-time_differencePID wheelrpm_time; 
+// Slip ratio thresholds (S < 0 = wheelspin, S > 0 = wheel lock)
+static const float TRACTION_SLIP_THRESHOLD = -0.20f; // activate traction when S < this
+static const float TARGET_TRACTION_SLIP    = -0.15f; // traction setpoint
+static const float TARGET_BRAKE_SLIP       =  0.15f; // braking setpoint
 
-//steering input from profs code 
-float st_input = 1750;
-float freq = 50; // 50hz
-float period = (1.0f/freq);
-int duty_cycle = (int)((st_input/1000.0f)/period);
-float max_motorV = 12.0f;
-uint32_t k = 0;
+// Autonomous maneuver timing (ms from power-on)
+static const uint32_t T_FORWARD_START =   500UL;
+static const uint32_t T_TURN_L_START  =  4000UL;
+static const uint32_t T_CRUISE1_START =  6000UL;
+static const uint32_t T_TURN_R_START  =  8000UL;
+static const uint32_t T_CRUISE2_START =  9500UL;
+static const uint32_t T_SLOW_START    = 11000UL;
+static const uint32_t T_BRAKE_START   = 13000UL;
+static const uint32_t T_REVERSE_START = 16000UL;
+static const uint32_t T_STOP_START    = 18500UL;
 
-void setup() {
-Serial.begin(9600);
-// inits
-init_buffer(); // here we call adc init so dont need to call it in setup;
-timer0_init();
-PID_init(&rpm_pid, kp, ki,kd);
-init_dt(&wheelrpm_time);
+/******************************************************************************
+ *                         D R I V E   S T A T E S
+ ******************************************************************************/
+typedef enum {
+    STATE_NEUTRAL = 0,
+    STATE_FORWARD,
+    STATE_TURN_LEFT,
+    STATE_CRUISE,
+    STATE_TURN_RIGHT,
+    STATE_SLOW_DOWN,
+    STATE_BRAKE,
+    STATE_REVERSE,
+    STATE_STOP
+} drive_state_t;
 
+/******************************************************************************
+ *                     T I M E R 1   I S R s
+ * Timer1 runs at 2 MHz (prescaler /8). ICR1=39999 → 20 ms period (50 Hz).
+ * OVF fires at BOTTOM (counter wraps): raise D7 and D8 to start servo pulses.
+ * COMPA fires at OCR1A ticks: lower D7 to end u1 pulse.
+ * COMPB fires at OCR1B ticks: lower D8 to end u2 pulse.
+ ******************************************************************************/
+volatile bool control_flag = false;
+
+ISR(TIMER1_OVF_vect)
+{
+    PORTD |=  (1 << PD7);   // D7 HIGH: start u1 pulse
+    PORTB |=  (1 << PB0);   // D8 HIGH: start u2 pulse
+    control_flag = true;    // trigger 50 Hz control loop
 }
-void loop() {
-k++;
-//float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_differencePID *time)
-float whl_speed_rear = buffer1_avg()*1.0f/1023.0f*5.0f;
-float whl_speed_fr = buffer3_avg()*1.0f/1023.0f*5.0f;
-float whl_speed_fl = buffer5_avg()*1.0f/1023.0f*5.0f;
-float average_front = (whl_speed_fl+whl_speed_fr)/2.0f;
-float slip_ratio = 0;
-if (average_front>0) slip_ratio = (average_front-whl_speed_rear)/(average_front);
-float output_motorV = PID_compute(&rpm_pid,target_slip_ratio,slip_ratio,&wheelrpm_time);
-float duty = output_motorV / (float)max_motorV;
-duty = constrain(duty, 0.0f, 100.0f);
-init_fastPWM(freq, (int)duty, pin10); // motor output
-if (k%1000 == 1){
-    Serial.print("output_motorV: "); Serial.println(output_motorV);
-    Serial.print("average_front: "); Serial.println(average_front);
-    Serial.print("whl_speed_rear: "); Serial.println(whl_speed_rear);
-    Serial.print("slip_ratio: "); Serial.println(slip_ratio);
-    Serial.println();
+
+ISR(TIMER1_COMPA_vect)
+{
+    PORTD &= ~(1 << PD7);   // D7 LOW: end u1 pulse
 }
 
-delay_ms(1);
+ISR(TIMER1_COMPB_vect)
+{
+    PORTB &= ~(1 << PB0);   // D8 LOW: end u2 pulse
 }
+
+/******************************************************************************
+ *                    S I G N A L   H E L P E R S
+ ******************************************************************************/
+
+// ADC counts → angular velocity (rad/s)
+// w = (V - 2.5) * 14.0,  where V = counts * ADC_TO_V
+// 2.5 V = zero speed, 5.0 V = +wmax (35 rad/s), 0.0 V = -wmax
+static inline float adc_to_omega(uint16_t counts)
+{
+    return (counts * ADC_TO_V - 2.5f) * 14.0f;
+}
+
+// Motor voltage Va [-12, +12] V → servo pulse width [1000, 2000] µs
+static inline uint16_t va_to_pw(float Va)
+{
+    float pw = (Va / V_BAT) * PW_RANGE + PW_NEUTRAL;
+    if (pw < PW_MIN) pw = PW_MIN;
+    if (pw > PW_MAX) pw = PW_MAX;
+    return (uint16_t)pw;
+}
+
+// Slip ratio S = (w_front - w_rear) / |w_front|
+// S < 0: rear faster than front → wheelspin (traction control zone)
+// S > 0: rear slower than front → wheel lock (braking control zone)
+static inline float compute_slip(float w_front, float w_rear)
+{
+    if (fabsf(w_front) < 0.5f) return 0.0f;  // guard divide-by-zero at standstill
+    return (w_front - w_rear) / fabsf(w_front);
+}
+
+/******************************************************************************
+ *                      P I D   I N S T A N C E S
+ ******************************************************************************/
+static PID_t speed_pid;
+static PID_t traction_pid;
+static PID_t brake_pid;
+static time_differencePID speed_time;
+static time_differencePID traction_time;
+static time_differencePID brake_time;
+
+/******************************************************************************
+ *                            S E T U P
+ ******************************************************************************/
+void setup()
+{
+    Serial.begin(1000000);   // 1 Mbaud for simulator 2 (change to 115200 for sim 1)
+
+    timer0_init();           // Timer2 CTC: 1 ms millis_ clock
+    init_servoPWM();         // Timer1 interrupt mode: servo pulses on D7 (u1) and D8 (u2)
+
+    // Speed controller: track desired angular velocity (rad/s)
+    PID_init(&speed_pid, 0.8f, 0.3f, 0.05f);
+    speed_pid.integral_min = -25.0f;  // allow bidirectional integral
+
+    // Traction controller: hold slip near TARGET_TRACTION_SLIP during acceleration
+    PID_init(&traction_pid, 6.0f, 0.5f, 0.1f);
+    traction_pid.integral_min = -25.0f;
+
+    // Braking controller: hold slip near TARGET_BRAKE_SLIP during deceleration
+    PID_init(&brake_pid, 6.0f, 0.5f, 0.1f);
+    brake_pid.integral_min = -25.0f;
+
+    init_dt(&speed_time);
+    init_dt(&traction_time);
+    init_dt(&brake_time);
+
+    init_buffer();           // ADC interrupt buffers on A1 (y1), A3 (y2), A5 (y3); also calls sei()
+
+    Serial.println(F("%time_s,y1_V,y2_V,y3_V,pw1_us,w_rear,slip,state"));
+
+    uint8_t log_tick = 0;
+
+    /**************************************************************************
+     *                      M A I N   L O O P
+     * Runs at 50 Hz (every 20 ms), triggered by Timer1 OVF ISR.
+     **************************************************************************/
+    while (1)
+    {
+        if (!control_flag) continue;
+        control_flag = false;
+
+        // ---- 1. Read sensors and convert to rad/s ----
+        uint16_t raw1 = buffer1_avg();
+        uint16_t raw3 = buffer3_avg();
+        uint16_t raw5 = buffer5_avg();
+
+        float w_rear  = adc_to_omega(raw1);
+        float w_fr    = adc_to_omega(raw3);
+        float w_fl    = adc_to_omega(raw5);
+        float w_front = (w_fr + w_fl) * 0.5f;
+        float S       = compute_slip(w_front, w_rear);
+
+        // ---- 2. Maneuver sequencer: set desired speed and steering ----
+        uint32_t t = millis_();
+        float desired_speed;
+        uint16_t steer_us;
+        drive_state_t state;
+
+        if      (t < T_FORWARD_START)  { desired_speed =   0.0f; steer_us = 1500; state = STATE_NEUTRAL;    }
+        else if (t < T_TURN_L_START)   { desired_speed =  20.0f; steer_us = 1500; state = STATE_FORWARD;    }
+        else if (t < T_CRUISE1_START)  { desired_speed =  15.0f; steer_us = 1250; state = STATE_TURN_LEFT;  }
+        else if (t < T_TURN_R_START)   { desired_speed =  20.0f; steer_us = 1500; state = STATE_CRUISE;     }
+        else if (t < T_CRUISE2_START)  { desired_speed =  15.0f; steer_us = 1750; state = STATE_TURN_RIGHT; }
+        else if (t < T_SLOW_START)     { desired_speed =  20.0f; steer_us = 1500; state = STATE_CRUISE;     }
+        else if (t < T_BRAKE_START)    { desired_speed =   5.0f; steer_us = 1500; state = STATE_SLOW_DOWN;  }
+        else if (t < T_REVERSE_START)  { desired_speed =   0.0f; steer_us = 1500; state = STATE_BRAKE;      }
+        else if (t < T_STOP_START)     { desired_speed = -15.0f; steer_us = 1500; state = STATE_REVERSE;    }
+        else                           { desired_speed =   0.0f; steer_us = 1500; state = STATE_STOP;       }
+
+        // Steering applied directly — no PID needed
+        set_u2_pulse(steer_us);
+
+        // ---- 3. Safety priority stack ----
+        // Braking: commanded to stop but car is still rolling forward
+        bool braking = (desired_speed <= 0.0f && w_rear > 1.0f);
+        float Va;
+
+        if (braking) {
+            // Hold positive slip to maximise deceleration force
+            Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S, &brake_time);
+            if (Va > 0.0f) Va = 0.0f;   // braking only: Va ≤ 0 (neutral or reverse)
+        } else if (S < TRACTION_SLIP_THRESHOLD) {
+            // Wheelspin detected: reduce drive torque to recover traction
+            Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S, &traction_time);
+            if (Va < 0.0f) Va = 0.0f;   // no reverse during traction control
+        } else {
+            // Normal: speed controller tracks desired_speed from sequencer
+            Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
+        }
+
+        // ---- 4. Saturate Va and output to drive servo ----
+        if (Va >  V_BAT) Va =  V_BAT;
+        if (Va < -V_BAT) Va = -V_BAT;
+        uint16_t pw1 = va_to_pw(Va);
+        set_u1_pulse(pw1);
+
+        // ---- 5. Serial CSV log every 20 ticks (~400 ms) ----
+        if (++log_tick >= 20) {
+            log_tick = 0;
+            Serial.print(t * 0.001f, 3);       Serial.print(',');
+            Serial.print(raw1 * ADC_TO_V, 3);  Serial.print(',');
+            Serial.print(raw3 * ADC_TO_V, 3);  Serial.print(',');
+            Serial.print(raw5 * ADC_TO_V, 3);  Serial.print(',');
+            Serial.print(pw1);                 Serial.print(',');
+            Serial.print(w_rear, 2);           Serial.print(',');
+            Serial.print(S, 3);                Serial.print(',');
+            Serial.println(state);
+        }
+    }
+}
+
+// Arduino framework requires loop() to be defined; all logic lives in setup().
+void loop() {}

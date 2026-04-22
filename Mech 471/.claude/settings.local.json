@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"c:\\\\Repos\\\\MECH471\\\\Mech 471\\\\src\\\\simulator\\\\sim1\")",
+      "Bash(mkdir -p \"c:\\\\Repos\\\\MECH471\\\\Mech 471\\\\src\\\\simulator\\\\sim2\")"
+    ]
+  }
+}

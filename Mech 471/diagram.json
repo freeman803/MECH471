@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "author": "MECH471 HIL RC Car Simulation",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-arduino-uno",
+      "id": "ctrl",
+      "top": 160,
+      "left": 0,
+      "attrs": {
+        "firmware": ".pio/build/uno/firmware.hex",
+        "label": "Controller"
+      }
+    },
+    {
+      "type": "wokwi-arduino-uno",
+      "id": "sim",
+      "top": 160,
+      "left": 700,
+      "attrs": {
+        "firmware": ".pio/build/simulator2/firmware.hex",
+        "label": "HIL Simulator 2"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 400,
+      "left": 310,
+      "rotate": 90,
+      "attrs": { "value": "10000", "label": "R1 (y1)" }
+    },
+    {
+      "type": "wokwi-capacitor",
+      "id": "c1",
+      "top": 460,
+      "left": 310,
+      "attrs": { "capacitance": "0.000001", "label": "C1 (y1)" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 400,
+      "left": 370,
+      "rotate": 90,
+      "attrs": { "value": "10000", "label": "R2 (y2)" }
+    },
+    {
+      "type": "wokwi-capacitor",
+      "id": "c2",
+      "top": 460,
+      "left": 370,
+      "attrs": { "capacitance": "0.000001", "label": "C2 (y2)" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 400,
+      "left": 430,
+      "rotate": 90,
+      "attrs": { "value": "10000", "label": "R3 (y3)" }
+    },
+    {
+      "type": "wokwi-capacitor",
+      "id": "c3",
+      "top": 460,
+      "left": 430,
+      "attrs": { "capacitance": "0.000001", "label": "C3 (y3)" }
+    }
+  ],
+  "connections": [
+    ["ctrl:D7",   "sim:D2",  "green",  []],
+    ["ctrl:D8",   "sim:D3",  "blue",   []],
+    ["sim:D5",    "r1:1",    "orange", []],
+    ["r1:2",      "ctrl:A1", "orange", []],
+    ["r1:2",      "c1:pos",  "orange", []],
+    ["c1:neg",    "ctrl:GND.1", "black", []],
+    ["sim:D6",    "r2:1",    "yellow", []],
+    ["r2:2",      "ctrl:A3", "yellow", []],
+    ["r2:2",      "c2:pos",  "yellow", []],
+    ["c2:neg",    "ctrl:GND.1", "black", []],
+    ["sim:D11",   "r3:1",    "purple", []],
+    ["r3:2",      "ctrl:A5", "purple", []],
+    ["r3:2",      "c3:pos",  "purple", []],
+    ["c3:neg",    "ctrl:GND.1", "black", []],
+    ["ctrl:GND.1","sim:GND.1", "black", []]
+  ]
+}

@@ -172,3 +172,34 @@ void pwm1_stop(void)
     // Clear clock select bits (CS12:CS10)
     TCCR1B &= ~(BIT(0) | BIT(1) | BIT(2));
 }
+
+void init_servoPWM(void)
+{
+    DDRD |= (1 << PD7);   // D7 = u1 output (drive motor)
+    DDRB |= (1 << PB0);   // D8 = u2 output (steering)
+
+    // Timer1: Fast PWM, ICR1 as TOP, COM1A=00 COM1B=00 (no hardware output on D9/D10)
+    TCCR1A = 0;
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11); // prescaler /8 → 2 MHz (0.5 µs/tick)
+    ICR1   = 39999;  // 20 ms period: 40000 ticks at 2 MHz
+    OCR1A  = 3000;   // u1 neutral: 1500 µs × 2 ticks/µs = 3000 ticks
+    OCR1B  = 3000;   // u2 neutral: 1500 µs
+
+    // Enable overflow + both compare-match interrupts
+    TIMSK1 = (1 << TOIE1) | (1 << OCIE1A) | (1 << OCIE1B);
+}
+
+void set_u1_pulse(uint16_t us)
+{
+    // Atomic 16-bit write: OCR1A = pulse width in ticks (1 µs = 2 ticks at 2 MHz)
+    noInterrupts();
+    OCR1A = (uint16_t)(us * 2);
+    interrupts();
+}
+
+void set_u2_pulse(uint16_t us)
+{
+    noInterrupts();
+    OCR1B = (uint16_t)(us * 2);
+    interrupts();
+}

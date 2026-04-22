@@ -42,3 +42,8 @@ bool edit_PWM(digital_pin pin , int duty,long int hz);
 bool define_ISR(interrupt_mode mode, ISR_Pin pin);
 void pwm1_stop(void);
 void pwm1_start(void);
+
+// Timer1 interrupt-mode servo pulse generation on D7 (u1) and D8 (u2)
+void init_servoPWM(void);
+void set_u1_pulse(uint16_t us);   // D7: drive motor, 1000-2000 µs
+void set_u2_pulse(uint16_t us);   // D8: steering,    1000-2000 µs
