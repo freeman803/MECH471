@@ -175,45 +175,18 @@ void pwm1_stop(void)
 
 void init_servoPWM(void)
 {
-    // Timing Math:
-    // F_CPU = 16 MHz, Prescaler = 8 → Timer clock = 2 MHz → tick = 0.5 µs
-    // 20 ms period = 40,000 ticks → ICR1 = 39,999
-    // 1000 µs = 2000 ticks (full reverse), 1500 µs = 3000 (neutral), 2000 µs = 4000 (full fwd)
+    DDRD |= (1 << PD7);   // D7 = u1 output (drive motor)
+    DDRB |= (1 << PB0);   // D8 = u2 output (steering)
 
-    // set D7 (u1) and D8 (u2) as outputs
-    DDRD |= BIT(DDD7);
-    DDRB |= BIT(DDB0);
-
-    // initialise both pins LOW
-    PORTD &= ~BIT(PORTD7);
-    PORTB &= ~BIT(PORTB0);
-
-    cli(); // disable interrupts for atomic Timer1 config
-
-    // clear Timer1 control registers
+    // Timer1: Fast PWM, ICR1 as TOP, COM1A=00 COM1B=00 (no hardware output on D9/D10)
     TCCR1A = 0;
-    TCCR1B = 0;
-    TIMSK1 = 0;
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11); // prescaler /8 → 2 MHz (0.5 µs/tick)
+    ICR1   = 39999;  // 20 ms period: 40000 ticks at 2 MHz
+    OCR1A  = 3000;   // u1 neutral: 1500 µs × 2 ticks/µs = 3000 ticks
+    OCR1B  = 3000;   // u2 neutral: 1500 µs
 
-    // Fast PWM, Mode 14: WGM13=1 WGM12=1 WGM11=1 WGM10=0 — ICR1 is TOP
-    // COM1A=00, COM1B=00: no hardware output on D9/D10
-    TCCR1A |= BIT(WGM11);
-    TCCR1B |= BIT(WGM13) | BIT(WGM12);
-
-    // 20 ms period at 2 MHz
-    ICR1  = 39999;
-
-    // neutral pulse widths (1500 µs = 3000 ticks)
-    OCR1A = 3000;
-    OCR1B = 3000;
-
-    // enable: overflow (start of pulse), compare A (end u1), compare B (end u2)
-    TIMSK1 |= BIT(TOIE1) | BIT(OCIE1A) | BIT(OCIE1B);
-
-    // set prescaler /8 last — starts the timer
-    TCCR1B |= BIT(CS11);
-
-    sei();
+    // Enable overflow + both compare-match interrupts
+    TIMSK1 = (1 << TOIE1) | (1 << OCIE1A) | (1 << OCIE1B);
 }
 
 void set_u1_pulse(uint16_t us)
