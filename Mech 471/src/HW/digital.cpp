@@ -178,8 +178,10 @@ void init_servoPWM(void)
     DDRD |= (1 << PD7);   // D7 = u1 output (drive motor)
     DDRB |= (1 << PB0);   // D8 = u2 output (steering)
 
-    // Timer1: Fast PWM, ICR1 as TOP, COM1A=00 COM1B=00 (no hardware output on D9/D10)
-    TCCR1A = 0;
+    // Timer1: Fast PWM ICR1-TOP (WGM1=1110), COM1A=00 COM1B=00 (no hardware output on D9/D10)
+    // WGM11=1 in TCCR1A + WGM13|WGM12 in TCCR1B → mode 14 (Fast PWM, ICR1 as TOP)
+    // OVF fires at BOTTOM each 20 ms period — required for control_flag and servo pulse start
+    TCCR1A = (1 << WGM11);
     TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11); // prescaler /8 → 2 MHz (0.5 µs/tick)
     ICR1   = 39999;  // 20 ms period: 40000 ticks at 2 MHz
     OCR1A  = 3000;   // u1 neutral: 1500 µs × 2 ticks/µs = 3000 ticks
