@@ -34,6 +34,8 @@ static const uint32_t T_SLOW_START    = 11000UL;
 static const uint32_t T_BRAKE_START   = 13000UL;
 static const uint32_t T_REVERSE_START = 16000UL;
 static const uint32_t T_STOP_START    = 18500UL;
+static const uint32_t T_DONUT_START   = 21000UL;  // allow 2.5 s to fully stop before donut
+static const uint32_t T_DONUT_END     = 25000UL;  // 4 s donut phase
 
 /******************************************************************************
  *                         D R I V E   S T A T E S
@@ -47,7 +49,8 @@ typedef enum {
     STATE_SLOW_DOWN,
     STATE_BRAKE,
     STATE_REVERSE,
-    STATE_STOP
+    STATE_STOP,
+    STATE_DONUT   // traction control disabled, full throttle + full steering lock
 } drive_state_t;
 
 /******************************************************************************
@@ -151,7 +154,7 @@ void setup()
 
     init_buffer();           // ADC interrupt buffers on A1 (y1), A3 (y2), A5 (y3); also calls sei()
 
-    Serial.println(F("%time_s,y1_V,y2_V,y3_V,pw1_us,w_rear,slip,state"));
+    Serial.println(F("%time_s,y1_V,y2_V,y3_V,pw1_us,w_rear,S_right,S_left,S_ctrl,state"));
 
     uint8_t log_tick = 0;
 
@@ -169,11 +172,20 @@ void setup()
         uint16_t raw3 = buffer3_avg();
         uint16_t raw5 = buffer5_avg();
 
-        float w_rear  = adc_to_omega(raw1);
-        float w_fr    = adc_to_omega(raw3);
-        float w_fl    = adc_to_omega(raw5);
-        float w_front = (w_fr + w_fl) * 0.5f;
-        float S       = compute_slip(w_front, w_rear);
+        float w_rear = adc_to_omega(raw1);
+        float w_fr   = adc_to_omega(raw3);   // right front wheel
+        float w_fl   = adc_to_omega(raw5);   // left front wheel
+
+        // Per-wheel slip: detect which individual wheel is losing traction
+        float S_right = compute_slip(w_fr, w_rear);
+        float S_left  = compute_slip(w_fl, w_rear);
+
+        // Turn-aware control slip: use the faster (outer) front wheel as vehicle speed
+        // reference. During cornering the inner wheel decelerates sharply — using the
+        // average would give a falsely low reference speed and trigger traction control
+        // on the wrong side. The outer wheel is always the better estimate of Vx.
+        float w_ref     = (fabsf(w_fr) >= fabsf(w_fl)) ? w_fr : w_fl;
+        float S_control = compute_slip(w_ref, w_rear);
 
         // ---- 2. Maneuver sequencer: set desired speed and steering ----
         uint32_t t = millis_();
@@ -190,27 +202,53 @@ void setup()
         else if (t < T_BRAKE_START)    { desired_speed =   5.0f; steer_us = 1500; state = STATE_SLOW_DOWN;  }
         else if (t < T_REVERSE_START)  { desired_speed =   0.0f; steer_us = 1500; state = STATE_BRAKE;      }
         else if (t < T_STOP_START)     { desired_speed = -15.0f; steer_us = 1500; state = STATE_REVERSE;    }
+        else if (t < T_DONUT_START)    { desired_speed =   0.0f; steer_us = 1500; state = STATE_STOP;       }
+        else if (t < T_DONUT_END)      { desired_speed =   0.0f; steer_us = 1750; state = STATE_DONUT;      }
         else                           { desired_speed =   0.0f; steer_us = 1500; state = STATE_STOP;       }
+
+        // Donut mode: traction control disabled, full throttle, full right steering lock
+        bool donut_mode = (state == STATE_DONUT);
 
         // Steering applied directly — no PID needed
         set_u2_pulse(steer_us);
 
         // ---- 3. Safety priority stack ----
+        // Tighten traction threshold under steering: lateral grip margin is lower in corners
+        // so intervene sooner. steer_us 1500=straight, 1250/1750=full lock (±250 µs range).
+        float steer_offset    = fabsf((float)steer_us - 1500.0f);          // 0–500
+        float dynamic_threshold = TRACTION_SLIP_THRESHOLD
+                                + (steer_offset / 500.0f) * 0.10f;
+        // straight: -0.20  |  quarter lock: -0.15  |  full lock: -0.10
+
         // Braking: commanded to stop but car is still rolling forward
         bool braking = (desired_speed <= 0.0f && w_rear > 1.0f);
         float Va;
 
-        if (braking) {
+        if (donut_mode) {
+            // Donut: bypass all controllers — full throttle, traction control disabled.
+            // Steering is already at full right lock (steer_us=1750) via the sequencer.
+            Va = V_BAT;
+            // Keep all three time structs current so PIDs resume cleanly after donut ends
+            update_dt(&speed_time);
+            update_dt(&traction_time);
+            update_dt(&brake_time);
+        } else if (braking) {
             // Hold positive slip to maximise deceleration force
-            Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S, &brake_time);
+            Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S_control, &brake_time);
             if (Va > 0.0f) Va = 0.0f;   // braking only: Va ≤ 0 (neutral or reverse)
-        } else if (S < TRACTION_SLIP_THRESHOLD) {
-            // Wheelspin detected: reduce drive torque to recover traction
-            Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S, &traction_time);
+            update_dt(&speed_time);
+            update_dt(&traction_time);
+        } else if (S_control < dynamic_threshold) {
+            // Wheelspin detected (turn-aware, outer wheel reference): reduce drive torque
+            Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S_control, &traction_time);
             if (Va < 0.0f) Va = 0.0f;   // no reverse during traction control
+            update_dt(&speed_time);
+            update_dt(&brake_time);
         } else {
             // Normal: speed controller tracks desired_speed from sequencer
             Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
+            update_dt(&traction_time);
+            update_dt(&brake_time);
         }
 
         // ---- 4. Saturate Va and output to drive servo ----
@@ -228,7 +266,9 @@ void setup()
             Serial.print(raw5 * ADC_TO_V, 3);  Serial.print(',');
             Serial.print(pw1);                 Serial.print(',');
             Serial.print(w_rear, 2);           Serial.print(',');
-            Serial.print(S, 3);                Serial.print(',');
+            Serial.print(S_right, 3);          Serial.print(',');
+            Serial.print(S_left, 3);           Serial.print(',');
+            Serial.print(S_control, 3);        Serial.print(',');
             Serial.println(state);
         }
     }

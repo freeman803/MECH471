@@ -24,8 +24,8 @@ typedef struct {
     float output_min;
     float output_max;
     float dt;
-    float integral_max = 25;
-    float integral_min = 5;
+    float integral_max =  25;
+    float integral_min = -25;
     float alpha = 0.5; //tuning parameter update step 
 } PID_t;
 

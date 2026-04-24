@@ -53,10 +53,10 @@ void update_dt(struct time_differencePID *time){
     time->time_now = millis_();
     time->dt = (time->time_now-time->last_time);
 }
-void init_dt(struct time_differencePID *time){//this might lead to a huge 1st dt but it should be called pretty soon after boot 
-    time->time_now = millis_();
-    time->last_time = 0;
-    time->dt = time->time_now-time->last_time;
+void init_dt(struct time_differencePID *time){
+    time->time_now  = millis_();
+    time->last_time = time->time_now;  // prevents large dt spike on first PID call
+    time->dt        = 1;               // safe default (1 ms)
 }
 void delay_ms(uint32_t ms) {
     uint32_t start = millis_();
