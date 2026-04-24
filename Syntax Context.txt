@@ -1,0 +1,136 @@
+// Question #1  Dual RC Servo Controller
+// (PD5) - Servo 1
+// (PD6) - Servo 2
+
+#include <Arduino.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+// defined quick macro for better readability and less syntax error chance 
+#define BIT(a) (1UL << (a))
+
+// Timing Math & Logic Explanation
+// Clock Frequency (F_CPU) = 16 MHz
+// Prescaler = 8
+// Timer Clock Frequency = 16 MHz / 8 = 2 MHz
+// Tick Period = 1 / 2 MHz = 0.5 microseconds (us)
+// A standard RC Servo requires a 20 ms (20,000 us) period.
+// Total ticks for 20 ms = 20,000 us / 0.5 us = 40,000 ticks.
+// Since the timer counts from 0, our TOP value (ICR1) will be 39,999.
+// Pulse Widths:
+// 1.0 ms (min pos) = 1,000 us / 0.5 us = 2,000 ticks
+// 1.5 ms (mid pos) = 1,500 us / 0.5 us = 3,000 ticks
+// 2.0 ms (max pos) = 2,000 us / 0.5 us = 4,000 ticks
+
+void servo_command(float w1, float w2);
+
+// global variables to hold the current timer tick targets for the pulse widths.
+// initialized to 1.5ms (mid pos).
+volatile unsigned int ticks_servo1 = 3000;
+volatile unsigned int ticks_servo2 = 3000;
+
+void setup() {
+
+  Serial.begin(115200);
+  Serial.println("Starting Servo Controller ");
+
+  // set P5 and P6 as output using data register D
+  DDRD |= BIT(DDD5) | BIT(DDD6);
+  
+  // Initialize both pins to LOW state (0V)
+  PORTD &= ~(BIT(PORTD5) | BIT(PORTD6));
+
+  // 2. Configure Timer 1
+  cli(); // disable global interrupts for atomic register config
+
+// clear existing Timer 1 control registers
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TIMSK1 = 0;
+
+// set Timer 1 to fast pwm mode (Mode 14)
+// mode 14 config: WGM13 = 1, WGM12 = 1, WGM11 = 1, WGM10 = 0
+  TCCR1A |= BIT(WGM11);
+  TCCR1B |= BIT(WGM12) | BIT(WGM13);
+
+// set top value to ensure 20ms cycle period (40,000 - 1)
+  ICR1 = 39999;
+
+// initialize output compare registers at neutral pos
+ 
+  OCR1A = ticks_servo1;
+  OCR1B = ticks_servo2;
+
+// enable the required Timer 1 Interrupts:
+// TOIE1: Overflow Interrupt (Triggers at TOP, signaling start of the 20ms frame)
+// OCIE1A: Output Compare A Match (Triggers when Timer 1 reaches OCR1A)
+// OCIE1B: Output Compare B Match (Triggers when Timer 1 reaches OCR1B)
+
+  TIMSK1 |= BIT(TOIE1) | BIT(OCIE1A) | BIT(OCIE1B);
+  TCCR1B |= BIT(CS11);
+
+  sei(); // re enable globel interrupts
+}
+
+void loop() {
+
+  
+  // move servo 1 to minimum (1.0ms) and servo 2 to maximum (2.0ms)
+  Serial.println("Command: Servo1 = 1.0ms, Servo2 = 2.0ms");
+  servo_command(1.0, 2.0);
+  delay(2000); 
+
+  // move both to neutral (1.5ms)
+  Serial.println("Command: Servo1 = 1.5ms, Servo2 = 1.5ms");
+  servo_command(1.5, 1.5);
+  delay(2000);
+
+  // move servo 1 to max and servo 2 to min
+  Serial.println("Command: Servo1 = 2.0ms, Servo2 = 1.0ms");
+  servo_command(2.0, 1.0);
+  delay(2000);
+}
+
+// function to update the pulse widths for both servos.
+//w1 - Pulse width for Servo 1 on P5
+//w2 - Pulse width for Servo 2 on P6
+void servo_command(float w1, float w2) {
+  // constrain inputs to match pulse length in question
+  if (w1 < 1.0) w1 = 1.0;
+  if (w1 > 2.0) w1 = 2.0;
+  if (w2 < 1.0) w2 = 1.0;
+  if (w2 > 2.0) w2 = 2.0;
+
+  // convert the ms range to timer ticks.
+  unsigned int new_ticks1 = (unsigned int)(w1 * 2000.0);
+  unsigned int new_ticks2 = (unsigned int)(w2 * 2000.0);
+
+// disable interrupts to ensure the 16-bit registers (OCR1A/B) are updated atomically
+// this prevents an interrupt from firing exactly when only half of the 16-bit value has been written by the 8-bit AVR CPU
+  cli();
+  OCR1A = new_ticks1;
+  OCR1B = new_ticks2;
+  sei();
+}
+
+// timer 1 Overflow Interrupt
+// triggers at the start of every 20ms frame
+// sets both servo pins HIGH to start the pulses
+
+ISR(TIMER1_OVF_vect) {
+  PORTD |= BIT(PORTD5) | BIT(PORTD6);
+}
+
+// timer 1 compare match A interrupt
+// triggers when the timer matches the value in OCR1A set P5 low to end the pulse for Servo 1
+
+ISR(TIMER1_COMPA_vect) {
+  PORTD &= ~BIT(PORTD5);
+}
+
+// timer 1 compare match B interrupt
+// triggers when the timer matches the value in OCR1B set Pin 6 low to end the pulse for Servo 2
+
+ISR(TIMER1_COMPB_vect) {
+  PORTD &= ~BIT(PORTD6);
+}

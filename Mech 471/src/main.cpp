@@ -59,21 +59,28 @@ typedef enum {
  ******************************************************************************/
 volatile bool control_flag = false;
 
+// Timer1 Overflow Interrupt
+// Fires at the start of every 20 ms frame (counter wraps to 0 at BOTTOM)
+// Raises D7 (u1) and D8 (u2) HIGH to begin both servo pulses
 ISR(TIMER1_OVF_vect)
 {
-    PORTD |=  (1 << PD7);   // D7 HIGH: start u1 pulse
-    PORTB |=  (1 << PB0);   // D8 HIGH: start u2 pulse
-    control_flag = true;    // trigger 50 Hz control loop
+    PORTD |=  BIT(PORTD7);   // D7 HIGH: start u1 pulse (drive motor)
+    PORTB |=  BIT(PORTB0);   // D8 HIGH: start u2 pulse (steering)
+    control_flag = true;      // trigger 50 Hz control loop
 }
 
+// Timer1 Compare Match A Interrupt
+// Fires when counter reaches OCR1A — ends the u1 (drive motor) pulse
 ISR(TIMER1_COMPA_vect)
 {
-    PORTD &= ~(1 << PD7);   // D7 LOW: end u1 pulse
+    PORTD &= ~BIT(PORTD7);   // D7 LOW: end u1 pulse
 }
 
+// Timer1 Compare Match B Interrupt
+// Fires when counter reaches OCR1B — ends the u2 (steering) pulse
 ISR(TIMER1_COMPB_vect)
 {
-    PORTB &= ~(1 << PB0);   // D8 LOW: end u2 pulse
+    PORTB &= ~BIT(PORTB0);   // D8 LOW: end u2 pulse
 }
 
 /******************************************************************************
