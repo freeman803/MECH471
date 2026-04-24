@@ -90,14 +90,14 @@ bool init_fastPWM(long int hz, int duty, digital_pin pin){
     if (hz <= 0 || duty < 0 || duty > 100) return false;
     uint32_t top = (F_CPU / (64UL * (uint32_t)hz)) - 1;
     if (top > 65535UL) return false;
-    if (top > 65535) return false;
-     ICR1 = (uint16_t)top;
-    if (pin == pin9)
-    OCR1A = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
-else if (pin == pin10)
-    OCR1B = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
-    else 
+    ICR1 = (uint16_t)top;
+    if (pin == pin9) {
+        OCR1A = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
+    } else if (pin == pin10) {
+        OCR1B = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
+    } else {
         return false;
+    }
     // Prescaler = 64
     TCCR1B &= ~(BIT(CS12) | BIT(CS11) | BIT(CS10));
     TCCR1B |= BIT(CS11) | BIT(CS10);
@@ -105,21 +105,22 @@ else if (pin == pin10)
 }
 
 bool edit_PWM(digital_pin pin, int duty, long int hz){
-    uint32_t top = (16000000UL / (64UL * hz)) - 1;
-    if (top > 65535) return false;
-     ICR1 = top;
-    if (pin == pin9)
-        OCR1A = (top * duty) / 100;
-    else if (pin == pin10)
-        OCR1B = (top * duty) / 100;
-    else 
+    uint32_t top = (16000000UL / (64UL * (uint32_t)hz)) - 1;
+    if (top > 65535UL) return false;
+    ICR1 = (uint16_t)top;
+    if (pin == pin9) {
+        OCR1A = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
+    } else if (pin == pin10) {
+        OCR1B = (uint16_t)(((uint32_t)top * (uint32_t)duty) / 100UL);
+    } else {
         return false;
+    }
     return true;
 }
 
 bool define_ISR(interrupt_mode mode, ISR_Pin pin){
-    int adj;
-    int adj1;
+    int adj  = 0;
+    int adj1 = 0;
     if (pin == PIN_D2){
         adj = 0;
         adj1 = 0;
