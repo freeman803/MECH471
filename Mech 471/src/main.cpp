@@ -50,7 +50,7 @@ typedef enum {
     STATE_BRAKE,
     STATE_REVERSE,
     STATE_STOP,
-    STATE_DONUT   // traction control disabled, full throttle + full steering lock
+    STATE_DONUT   // traction control disabled, full throttle + full right steering lock (2000 µs)
 } drive_state_t;
 
 /******************************************************************************
@@ -133,7 +133,7 @@ void setup()
 {
     Serial.begin(1000000);   // 1 Mbaud for simulator 2 (change to 115200 for sim 1)
 
-    timer0_init();           // Timer2 CTC: 1 ms millis_ clock
+    timer2_init();           // Timer2 CTC: 1 ms millis_ clock
     init_servoPWM();         // Timer1 interrupt mode: servo pulses on D7 (u1) and D8 (u2)
 
     // Speed controller: track desired angular velocity (rad/s)
@@ -203,7 +203,7 @@ void setup()
         else if (t < T_REVERSE_START)  { desired_speed =   0.0f; steer_us = 1500; state = STATE_BRAKE;      }
         else if (t < T_STOP_START)     { desired_speed = -15.0f; steer_us = 1500; state = STATE_REVERSE;    }
         else if (t < T_DONUT_START)    { desired_speed =   0.0f; steer_us = 1500; state = STATE_STOP;       }
-        else if (t < T_DONUT_END)      { desired_speed =   0.0f; steer_us = 1750; state = STATE_DONUT;      }
+        else if (t < T_DONUT_END)      { desired_speed =   0.0f; steer_us = 2000; state = STATE_DONUT;      }
         else                           { desired_speed =   0.0f; steer_us = 1500; state = STATE_STOP;       }
 
         // Donut mode: traction control disabled, full throttle, full right steering lock
@@ -220,7 +220,10 @@ void setup()
                                 + (steer_offset / 500.0f) * 0.10f;
         // straight: -0.20  |  quarter lock: -0.15  |  full lock: -0.10
 
-        // Braking: commanded to stop but car is still rolling forward
+        // Braking: commanded to stop (or reverse) but car is still rolling forward.
+        // desired_speed <= 0 covers both STATE_BRAKE and STATE_REVERSE — the brake
+        // controller fires until w_rear drops below 1 rad/s, then speed control
+        // takes over and drives the motor to the reverse setpoint.
         bool braking = (desired_speed <= 0.0f && w_rear > 1.0f);
         float Va;
 

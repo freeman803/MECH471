@@ -22,7 +22,7 @@ uint32_t dt=1;
   /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-void timer0_init(void);
+void timer2_init(void);
 uint32_t millis_(void);
 void update_dt(struct time_differencePID *time);
 void init_dt(struct time_differencePID *time);

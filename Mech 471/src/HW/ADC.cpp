@@ -12,11 +12,11 @@
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
 void ADC_INIT(void){
-    ADCSRA |= BIT(ADEN);//enable ADC
-    //divide by 2 (prescaler)
-    ADCSRA |= BIT(ADPS0);//
-    ADCSRA |= BIT(ADPS1);//
-    ADCSRA |= BIT(ADPS2);//
+    ADCSRA |= BIT(ADEN);  // enable ADC
+    // prescaler /128 → 16 MHz / 128 = 125 kHz ADC clock (within 50–200 kHz spec)
+    ADCSRA |= BIT(ADPS0);
+    ADCSRA |= BIT(ADPS1);
+    ADCSRA |= BIT(ADPS2);
     //no auto trigger
     ADMUX &= ~BIT(ADLAR); // this does a right adjust 
     //internal voltage refs

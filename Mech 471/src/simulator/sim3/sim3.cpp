@@ -190,8 +190,11 @@ void sim_step(float &t, float x[], float u[], float dt)
 
     // ---- Tyre force (Pacejka-style saturation) ----
     // Peaks at S = ±S_opt, saturates beyond that
+    // Negate: with S=(w_front-w_rear)/|w_front|, wheelspin gives S<0.
+    // A negative S must produce positive forward force (accelerating the car),
+    // so the Pacejka sign must be flipped.
     float S_norm  = slip / S_opt;
-    float F_tire  = F_max * S_norm / sqrtf(1.0f + S_norm * S_norm);
+    float F_tire  = -F_max * S_norm / sqrtf(1.0f + S_norm * S_norm);
 
     // ---- Vehicle body dynamics ----
     float v_car_dot = (F_tire - b_car * v_car) / M_car;

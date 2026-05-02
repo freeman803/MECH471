@@ -16,7 +16,7 @@ static volatile uint32_t millis_counter = 0;
 /******************************************************************************
  *                       P U B L I C  F U N C T I O N S
  ******************************************************************************/
-void timer0_init(void)
+void timer2_init(void)
 {
     // Reset Timer2 registers
     TCCR2A = 0;

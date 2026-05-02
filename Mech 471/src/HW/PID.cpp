@@ -43,11 +43,11 @@ float PID_compute(PID_t *pid, float setpoint, float measurement,struct time_diff
     pid->proportional = pid->kp*error;
 
     pid->integrated_error += error*dt;
-    pid->integral = pid->integrated_error*pid->ki;
     if (pid->integrated_error > pid->integral_max)
         pid->integrated_error = pid->integral_max;
     else if (pid->integrated_error < pid->integral_min)
         pid->integrated_error = pid->integral_min;
+    pid->integral = pid->integrated_error*pid->ki;
 
     pid->derivative = ((measurement-(pid->prev_measurement))/dt)*pid->kd;
     pid->prev_error = error;

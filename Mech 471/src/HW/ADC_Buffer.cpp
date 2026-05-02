@@ -74,7 +74,7 @@ void init_buffer(void){
     current_index = 0;
 #elif defined(USE_BUFFER1)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_1);
-    current_index = 1;
+    current_index = 0;  // A_1 is enabled_pins[0]
 #elif defined(USE_BUFFER2)
     ADMUX = ((ADMUX & 0xF0) | (uint8_t)A_2);
     current_index = 2;
