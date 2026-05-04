@@ -131,7 +131,7 @@ static time_differencePID brake_time;
  ******************************************************************************/
 void setup()
 {
-    Serial.begin(1000000);   // 1 Mbaud for simulator 2 (change to 115200 for sim 1)
+    Serial.begin(1000000);   // 1 Mbaud for simulator 2 and 3 (change to 115200 for sim 1)
 
     timer2_init();           // Timer2 CTC: 1 ms millis_ clock
     init_servoPWM();         // Timer1 interrupt mode: servo pulses on D7 (u1) and D8 (u2)

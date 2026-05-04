@@ -86,6 +86,8 @@ void task1()
     }
 
     w1 = pw1;
+
+
     if (w1 > PW_MAX) w1 = PW_MAX;
     if (w1 < PW_MIN) w1 = PW_MIN;
 
