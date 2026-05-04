@@ -26,9 +26,13 @@ static const float PW_MAX     = 2000.0f;
 static const float TRACTION_SLIP_THRESHOLD = -0.20f; 
 static const float TARGET_TRACTION_SLIP    = -0.15f; 
 static const float TARGET_BRAKE_SLIP       =  0.15f; 
+static const float LAUNCH_SPEED_THRESHOLD = 300.0f;   // rad/s — exit launch once up to speed scaled for HIL3, tested through trial and error
+static const float LAUNCH_Va = 6.0f;                // open-loop throttle during launch, 7 would cause alot of slip
+static const uint32_t HIL_READY_DELAY_MS = 3000UL;  //delay time to allow Profs HIL to be ready and not provide bad readings at the start of the test
 
 // --- Global Variables ---
 volatile bool control_flag = false;
+bool launch_active = true;
 
 PID_t speed_pid;
 PID_t traction_pid;
@@ -61,7 +65,7 @@ ISR(TIMER1_COMPB_vect) {
 // Signal Helpers
 // ---------------------------------------------------------
 float adc_to_omega(uint16_t counts) {
-    return (counts * ADC_TO_V - 2.5f) * 14.0f;
+    return (counts * ADC_TO_V - 2.5f) * 324.0f; //scale based off HIL3 max speed of 810 rad/s at 5V (2.5V = 0 rad/s)
 }
 
 uint16_t va_to_pw(float Va) {
@@ -72,8 +76,18 @@ uint16_t va_to_pw(float Va) {
 }
 
 float compute_slip(float w_front, float w_rear) {
-    if (fabs(w_front) < 0.5f) return 0.0f;  // guard divide-by-zero
-    return (w_front - w_rear) / fabs(w_front);
+    const float MIN_FRONT_SPEED = 30.0f;
+
+    if (fabsf(w_front) < MIN_FRONT_SPEED) {
+        return 0.0f;
+    }
+
+    float S = (w_front - w_rear) / fabsf(w_front);
+
+    if (S >  3.0f) S =  3.0f;
+    if (S < -3.0f) S = -3.0f;
+
+    return S;// computes S but allows us to get more clean values of S given the testing bench without
 }
 
 // ---------------------------------------------------------
@@ -81,6 +95,7 @@ float compute_slip(float w_front, float w_rear) {
 // ---------------------------------------------------------
 void setup() {
     Serial.begin(1000000); // 1 Mbaud for simulator 2
+    //Serial.begin(2000000); // 2 Mbaud for simulator 3
 
     // Initialize Hardware 
     timer2_init();         // Timer2 CTC: 1 ms millis_ clock
@@ -88,7 +103,7 @@ void setup() {
     init_buffer();         // ADC interrupt buffers (calls sei() internally)
 
     // Speed controller
-    PID_init(&speed_pid, 0.8f, 0.3f, 0.05f);
+    PID_init(&speed_pid, 0.035f, 0.008f, 0.001f);
     speed_pid.integral_min = -25.0f; 
 
     // Traction controller 
@@ -115,6 +130,18 @@ void loop() {
     if (!control_flag) return;
     control_flag = false;
 
+    if (millis_() < HIL_READY_DELAY_MS) {
+        set_u1_pulse(1500);  // neutral throttle
+        set_u2_pulse(1500);  // straight steering
+
+        launch_active = true;
+
+        update_dt(&speed_time);
+        update_dt(&traction_time);
+        update_dt(&brake_time);
+
+        return; //holds neutral and delay until HIL is ready
+    }
     // 1. Read sensors and convert to rad/s 
     uint16_t raw1 = buffer1_avg(); // Drive
     uint16_t raw3 = buffer3_avg(); // Front Right
@@ -122,27 +149,28 @@ void loop() {
 
     float w_rear = adc_to_omega(raw1);
     float w_fr   = adc_to_omega(raw3);  
-    float w_fl   = adc_to_omega(raw5);  
+    float w_fl   = adc_to_omega(raw5);  //can be logged still but not used for control in this version
 
     // Turn-aware control slip: outer wheel provides the best vehicle speed estimate
-    float w_ref = (fabs(w_fr) >= fabs(w_fl)) ? w_fr : w_fl;
+    //float w_ref = (fabs(w_fr) >= fabs(w_fl)) ? w_fr : w_fl; The profs HIL3 fixes FL to 3V so it would add inaccuracy
+    float w_ref = w_fr;   // Professor HIL3: only y2/A3 is dynamic front wheel speed
     float S_control = compute_slip(w_ref, w_rear);
 
     // 2. Maneuver sequencer (Time-based states)
-    uint32_t t = millis_();
+    uint32_t t = millis_() - HIL_READY_DELAY_MS; // scale time to start after HIL is ready
     float desired_speed = 0.0f;
     uint16_t steer_us = 1500;
     bool donut_mode = false;
 
     if      (t < 500)   { desired_speed =   0.0f; steer_us = 1500; } // Neutral
-    else if (t < 4000)  { desired_speed =  20.0f; steer_us = 1500; } // Forward
-    else if (t < 6000)  { desired_speed =  15.0f; steer_us = 1250; } // Turn Left
-    else if (t < 8000)  { desired_speed =  20.0f; steer_us = 1500; } // Cruise 1
-    else if (t < 9500)  { desired_speed =  15.0f; steer_us = 1750; } // Turn Right
-    else if (t < 11000) { desired_speed =  20.0f; steer_us = 1500; } // Cruise 2
-    else if (t < 13000) { desired_speed =   5.0f; steer_us = 1500; } // Slow Down
+    else if (t < 4000)  { desired_speed =  200.0f; steer_us = 1500; } // Forward
+    else if (t < 6000)  { desired_speed =  150.0f; steer_us = 1250; } // Turn Left
+    else if (t < 8000)  { desired_speed =  200.0f; steer_us = 1500; } // Cruise 1
+    else if (t < 9500)  { desired_speed =  150.0f; steer_us = 1750; } // Turn Right
+    else if (t < 11000) { desired_speed =  200.0f; steer_us = 1500; } // Cruise 2
+    else if (t < 13000) { desired_speed =   50.0f; steer_us = 1500; } // Slow Down
     else if (t < 16000) { desired_speed =   0.0f; steer_us = 1500; } // Brake
-    else if (t < 18500) { desired_speed = -15.0f; steer_us = 1500; } // Reverse
+    else if (t < 18500) { desired_speed = -150.0f; steer_us = 1500; } // Reverse
     else if (t < 21000) { desired_speed =   0.0f; steer_us = 1500; } // Stop before donut
     else if (t < 25000) { desired_speed =   0.0f; steer_us = 2000; donut_mode = true; } 
     else                { desired_speed =   0.0f; steer_us = 1500; } // Final Stop
@@ -165,23 +193,68 @@ void loop() {
         update_dt(&speed_time);
         update_dt(&traction_time);
         update_dt(&brake_time);
-        
-    } else if (braking) {
-        // Priority 2: Active Braking 
-        Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S_control, &brake_time);
-        if (Va > 0.0f) Va = 0.0f;  
+       
+    } else if (desired_speed <= 0.0f) {
+    // Priority 2: Braking / Reverse / Stop
+    // When the maneuver sequence is not asking for forward motion,
+    // disable launch logic so the next forward section can launch again.
+    launch_active = true;
+
+        if (braking) {
+            // Active Braking Control
+            // Use brake PID to control positive slip during deceleration.
+            Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S_control, &brake_time);
+
+            // Braking should only command neutral/reverse torque.
+            if (Va > 0.0f) Va = 0.0f;
+
+            update_dt(&speed_time);
+            update_dt(&traction_time);
+
+        } else {
+            // Standard Speed Control for stop/reverse conditions
+            Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
+
+            update_dt(&traction_time);
+            update_dt(&brake_time);
+        }
+
+} else if (launch_active) {
+    // Priority 3: Launch Control
+    // Open-loop throttle until the rear wheel reaches launch threshold.
+    // This avoids the speed PID instantly saturating at startup.
+
+    if (w_rear < LAUNCH_SPEED_THRESHOLD) {
+        Va = LAUNCH_Va;
+
         update_dt(&speed_time);
         update_dt(&traction_time);
-        
-    } else if (S_control < dynamic_threshold) {
-        // Priority 3: Traction Control Override
-        Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S_control, &traction_time);
-        if (Va < 0.0f) Va = 0.0f;   
-        update_dt(&speed_time);
         update_dt(&brake_time);
-        
+
     } else {
-        // Priority 4: Standard Cruise Control
+        // Launch complete: hand off to normal cruise/traction logic.
+        launch_active = false;
+
+        Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
+
+        update_dt(&traction_time);
+        update_dt(&brake_time);
+    }
+
+} else if (desired_speed > 0.0f && fabsf(w_ref) > 30.0f && S_control < dynamic_threshold) {
+    // Priority 4: Traction Control Override
+    // If rear wheel is spinning faster than the front reference,
+    // reduce drive torque to target the desired slip ratio.
+    Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S_control, &traction_time);
+
+    // Traction control should reduce throttle, not command reverse.
+    if (Va < 0.0f) Va = 0.0f;
+
+    update_dt(&speed_time);
+    update_dt(&brake_time);
+
+}else {
+        // Priority 5: Standard Cruise Control
         Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
         update_dt(&traction_time);
         update_dt(&brake_time);
