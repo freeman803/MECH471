@@ -147,6 +147,13 @@ void loop() {
     uint16_t raw3 = buffer3_avg(); // Front Right
     uint16_t raw5 = buffer5_avg(); // Front Left
 
+    if (raw5 < 550 || raw5 > 675) {
+        set_u1_pulse(1500);  // neutral throttle
+        set_u2_pulse(1500);  // straight steering
+        Serial.println(F("NO HIL SIGNAL"));
+        return;// debugging tool to check if the car is reading the HIL, checks 3V for y3 which is fixed in HIL
+    }
+
     float w_rear = adc_to_omega(raw1);
     float w_fr   = adc_to_omega(raw3);  
     float w_fl   = adc_to_omega(raw5);  //can be logged still but not used for control in this version
@@ -186,9 +193,11 @@ void loop() {
 
     bool braking = (desired_speed <= 0.0f && w_rear > 1.0f);
     float Va = 0.0f;
+    const char* mode = "SPEED";
 
     if (donut_mode) {
         // Priority 1: Donut (Bypass PIDs, full throttle)
+        mode = "DONUT";
         Va = V_BAT;
         update_dt(&speed_time);
         update_dt(&traction_time);
@@ -203,16 +212,24 @@ void loop() {
         if (braking) {
             // Active Braking Control
             // Use brake PID to control positive slip during deceleration.
+            mode = "BRAKING";
             Va = PID_compute(&brake_pid, TARGET_BRAKE_SLIP, S_control, &brake_time);
 
             // Braking should only command neutral/reverse torque.
+            // Standard Speed Control for stop/reverse conditions
             if (Va > 0.0f) Va = 0.0f;
 
             update_dt(&speed_time);
             update_dt(&traction_time);
 
+        
         } else {
-            // Standard Speed Control for stop/reverse conditions
+            if (desired_speed < 0.0f) {
+            mode = "REVERSE";
+            } else {
+            mode = "STOP";
+            }
+            
             Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
 
             update_dt(&traction_time);
@@ -225,6 +242,7 @@ void loop() {
     // This avoids the speed PID instantly saturating at startup.
 
     if (w_rear < LAUNCH_SPEED_THRESHOLD) {
+        mode = "LAUNCHING";
         Va = LAUNCH_Va;
 
         update_dt(&speed_time);
@@ -233,6 +251,7 @@ void loop() {
 
     } else {
         // Launch complete: hand off to normal cruise/traction logic.
+        mode = "SPEED";
         launch_active = false;
 
         Va = PID_compute(&speed_pid, desired_speed, w_rear, &speed_time);
@@ -245,6 +264,7 @@ void loop() {
     // Priority 4: Traction Control Override
     // If rear wheel is spinning faster than the front reference,
     // reduce drive torque to target the desired slip ratio.
+    mode = "TRACTION";
     Va = PID_compute(&traction_pid, TARGET_TRACTION_SLIP, S_control, &traction_time);
 
     // Traction control should reduce throttle, not command reverse.
@@ -268,7 +288,7 @@ void loop() {
     set_u1_pulse(pw1);
 
     // 5. Serial CSV log every 20 ticks (~400 ms) 
-    if (++log_tick >= 20) {
+    /*if (++log_tick >= 20) {
         log_tick = 0;
         Serial.print(t * 0.001f, 3);       Serial.print(',');
         Serial.print(raw1 * ADC_TO_V, 3);  Serial.print(',');
@@ -277,5 +297,33 @@ void loop() {
         Serial.print(pw1);                 Serial.print(',');
         Serial.print(w_rear, 2);           Serial.print(',');
         Serial.println(S_control, 3);
+    }*/
+   if (++log_tick >= 20) {
+    log_tick = 0;
+
+    Serial.print(F("t="));
+    Serial.print(t * 0.001f, 2);
+
+    Serial.print(F("s | mode="));
+    Serial.print(mode);
+
+    Serial.print(F(" | target="));
+    Serial.print(desired_speed, 0);
+
+    Serial.print(F(" actual="));
+    Serial.print(w_rear, 0);
+
+    Serial.print(F(" | S="));
+    Serial.print(S_control, 3);
+
+    Serial.print(F(" | Va="));
+    Serial.print(Va, 1);
+    Serial.print(F("V"));
+
+    Serial.print(F(" | pw="));
+    Serial.print(pw1);
+
+    Serial.print(F(" | steer="));
+    Serial.println(steer_us);
     }
 }
