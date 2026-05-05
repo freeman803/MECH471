@@ -90,9 +90,7 @@ float compute_slip(float w_front, float w_rear) {
     return S;// computes S but allows us to get more clean values of S given the testing bench without
 }
 
-// ---------------------------------------------------------
 // Setup 
-// ---------------------------------------------------------
 void setup() {
     Serial.begin(1000000); // 1 Mbaud for simulator 2
     //Serial.begin(2000000); // 2 Mbaud for simulator 3
@@ -121,9 +119,8 @@ void setup() {
     Serial.println(F("%time_s,y1_V,y2_V,y3_V,pw1_us,w_rear,S_control"));
 }
 
-// ---------------------------------------------------------
 // Main Control Loop (Executes at 50Hz)
-// ---------------------------------------------------------
+
 void loop() {
     
     // Wait for the Timer1 OVF ISR to trigger the control frame

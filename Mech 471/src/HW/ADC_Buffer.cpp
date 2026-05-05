@@ -5,16 +5,11 @@
 
 
  // ADCSRA |= BIT(ADIE);   // Enable ADC interrupt toggling this pin will enable the ISR
-/******************************************************************************
- *                             I N C L U D E S
- ******************************************************************************/
 #include <HW\ADC.h>
 #include <HW\ADC_Buffer.h>
 #include <avr/interrupt.h>
 #include "lib_buffer.h"
-/******************************************************************************
- *                              D E F I N E S
- ******************************************************************************/
+
 #ifdef USE_BUFFER0
 LIB_BUFFER_FIFO_CREATE(USE_Buffer0, uint16_t, BufferLength);
 #endif
@@ -62,9 +57,6 @@ static const uint8_t enabled_pins[] = {
 //variables needed each time the ISR runs
 static uint8_t current_index = 0;
 #define NUM_PINS (sizeof(enabled_pins)/sizeof(enabled_pins[0]))
-/******************************************************************************
- *                       P U B L I C  F U N C T I O N S
- ******************************************************************************/
 
 void init_buffer(void){
     ADC_INIT();
